@@ -1,0 +1,1 @@
+PREFIX_USER = 'user_profile'

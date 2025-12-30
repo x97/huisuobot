@@ -1,0 +1,7 @@
+# collect/handlers.py
+EXCHANGE_WAITING_FOR_PLACE = 101
+EXCHANGE_WAITING_CONFIRM = 102
+
+# Conversation states for appeal flow
+APPEAL_WAITING_REASON = 110
+APPEAL_WAITING_CONFIRM = 111
