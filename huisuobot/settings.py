@@ -89,12 +89,6 @@ WSGI_APPLICATION = 'huisuobot.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 
 
 # Password validation
@@ -119,7 +113,6 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-
 LANGUAGE_CODE = 'zh-hans'
 
 TIME_ZONE = 'Asia/Shanghai'
@@ -128,38 +121,55 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
+# Default primary key field type
+# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 STATIC_URL = 'static/'
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-import os
-STORAGE_MODE = os.getenv("STORAGE_MODE", "local")
 
+from .config.config_loader import load_config
+
+env_config = load_config()
+
+DATABASES = {
+    'default': {
+        'ENGINE': env_config["DATABASE"]["ENGINE"],
+        'NAME': env_config["DATABASE"]["NAME"],
+        'USER': env_config["DATABASE"]["USER"],
+        'PASSWORD': env_config["DATABASE"]["PASSWORD"],
+        'HOST': env_config["DATABASE"]["HOST"],
+        'PORT': env_config["DATABASE"]["PORT"],
+
+        **({
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'use_unicode': True,
+                'init_command': "SET character_set_connection=utf8mb4, collation_connection=utf8mb4_unicode_ci"
+            }
+        } if env_config["DATABASE"]["ENGINE"] == 'django.db.backends.mysql' else {})
+    }
+}
+
+STORAGE_MODE = env_config["STORAGE_MODE"]
 DEFAULT_FILE_STORAGE = "bot_core.storage_backends.get_default_storage"
 
 if STORAGE_MODE == "cos":
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+    AWS_ACCESS_KEY_ID = env_config["COS"]["SECRET_ID"]
+    AWS_SECRET_ACCESS_KEY = env_config["COS"]["SECRET_KEY"]
+    AWS_STORAGE_BUCKET_NAME = env_config["COS"]["BUCKET"]
+    AWS_S3_ENDPOINT_URL = env_config["COS"]["ENDPOINT"]
 
-    AWS_ACCESS_KEY_ID = os.getenv("COS_SECRET_ID")
-    AWS_SECRET_ACCESS_KEY = os.getenv("COS_SECRET_KEY")
-    AWS_STORAGE_BUCKET_NAME = os.getenv("COS_BUCKET")
-    AWS_S3_ENDPOINT_URL = os.getenv("COS_ENDPOINT")  # 例如 https://cos.ap-shanghai.myqcloud.com
-
-if STORAGE_MODE == "s3":
+elif STORAGE_MODE == "s3":
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+    AWS_ACCESS_KEY_ID = env_config["AWS"]["ACCESS_KEY_ID"]
+    AWS_SECRET_ACCESS_KEY = env_config["AWS"]["SECRET_ACCESS_KEY"]
+    AWS_STORAGE_BUCKET_NAME = env_config["AWS"]["BUCKET"]
+    AWS_S3_REGION_NAME = env_config["AWS"]["REGION"]
 
-    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_BUCKET")
-    AWS_S3_REGION_NAME = os.getenv("AWS_REGION")
+TELEGRAM_BOT_TOKEN = env_config["TELEGRAM_BOT_TOKEN"]
 
-TELEGRAM_BOT_TOKEN = '7999958894:AAHrxSeI_nRcKrkoKVwyAO7esoZANRgnVCM'
