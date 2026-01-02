@@ -161,7 +161,7 @@ def reward_submit_receive_text(update: Update, context: CallbackContext):
 
     parsed = {}
     for label, field in TEMPLATE_FIELDS.items():
-        pattern = rf"【{label}】:\s*([^\n]*)"
+        pattern = rf"【{label}】\s*:?\s*([^\n]*)"
         match = re.search(pattern, text)
         parsed[field] = match.group(1).strip() if match else ""
 

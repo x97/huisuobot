@@ -65,4 +65,4 @@ class Staff(models.Model):
         ]
 
     def __str__(self):
-        return self.nickname or self.code or f"Staff {self.id}"
+        return self.nickname  or f"Staff {self.id}"

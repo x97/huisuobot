@@ -20,8 +20,7 @@ class StaffInline(admin.TabularInline):
     model = Staff
     extra = 1
     max_num = 50  # 最多允许50个服务人员
-    fields = ('nickname', 'birth_year', 'bust_info', 'bust_size',
-              'attractiveness', 'is_active', 'created_at')
+    fields = ('nickname', 'is_active', 'created_at')
     readonly_fields = ('created_at',)
     ordering = ('-is_active', 'nickname')
 
