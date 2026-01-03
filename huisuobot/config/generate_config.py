@@ -31,6 +31,17 @@ def generate_config_file():
         print("🔑 已自动生成 SECRET_KEY")
 
     # -----------------------------
+    # ALLOWED_HOSTS
+    # -----------------------------
+    print("\n🌐 请输入 ALLOWED_HOSTS（多个用逗号分隔）")
+    allowed_hosts_raw = get_input_with_default("ALLOWED_HOSTS", "")
+    if allowed_hosts_raw:
+        allowed_hosts = [h.strip() for h in allowed_hosts_raw.split(",") if h.strip()]
+    else:
+        allowed_hosts = []
+    print(f"➡️ ALLOWED_HOSTS = {allowed_hosts}")
+
+    # -----------------------------
     # 数据库配置（增强版）
     # -----------------------------
     print("\n🗄️ 请选择数据库类型:")
@@ -104,6 +115,7 @@ def generate_config_file():
     # 构建配置 dict
     config = {
         "SECRET_KEY": secret_key,
+        "ALLOWED_HOSTS": allowed_hosts,
 
         "DATABASE": {
             "ENGINE": db_engine,

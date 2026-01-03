@@ -24,10 +24,6 @@ SECRET_KEY = 'django-insecure-@5&xl9t21j&il72ag0un^*$cj#bha0=6+x=4-0kh&fr(klvhc)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = []
-
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -135,6 +131,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 from .config.config_loader import load_config
 
 env_config = load_config()
+
+ALLOWED_HOSTS = env_config.get("ALLOWED_HOSTS", [])
 
 DATABASES = {
     'default': {
