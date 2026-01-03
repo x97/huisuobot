@@ -15,7 +15,7 @@ echo "=================================================="
 apt update -y && apt upgrade -y
 
 # 安装核心依赖
-apt install -y python3.9 python3.9-dev python3-pip python3-venv \
+apt install -y python3-pip python3-venv \
 mysql-server nginx git supervisor redis-server \
 gcc libmysqlclient-dev libssl-dev libffi-dev \
 libxml2-dev libxslt1-dev zlib1g-dev

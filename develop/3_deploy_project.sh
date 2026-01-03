@@ -2,7 +2,7 @@
 set -e
 
 # 配置参数（根据实际情况修改！）
-GIT_REPO="https://github.com/yourusername/huisuobot.git"  # 你的Git仓库地址
+GIT_REPO="https://github.com/x97/huisuobot.git"  # 你的Git仓库地址
 GIT_BRANCH="main"                                         # Git分支
 PROJECT_DIR="/var/www/huisuobot"                          # 项目部署路径
 VENV_DIR="${PROJECT_DIR}/venv"                            # 虚拟环境路径
@@ -50,7 +50,7 @@ if [ -d "${VENV_DIR}" ]; then
     source "${VENV_DIR}/bin/activate"
 else
     echo "ℹ️ 创建虚拟环境..."
-    python3.9 -m venv "${VENV_DIR}"
+    python3 -m venv "${VENV_DIR}"
     source "${VENV_DIR}/bin/activate"
     pip install --upgrade pip setuptools wheel
     echo "✅ 虚拟环境创建成功"
