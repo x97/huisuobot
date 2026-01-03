@@ -64,7 +64,8 @@ def exchange_input_place(update: Update, context: CallbackContext):
     user_text = update.message.text.strip()
     qs = Place.objects.filter(exchange_points__gt=0, name__icontains=user_text)
     if not qs.exists():
-        update.message.reply_text("未找到匹配的可兑换场所，请检查名称后重试，或输入更短的关键字。")
+        update.message.reply_text("未找到匹配的可兑换场所，请检查名称后重试，或输入更短的关键字。"
+                                  "\n输入 /cancel 取消兑换")
         return EXCHANGE_WAITING_FOR_PLACE
 
     place = qs.first()
@@ -119,12 +120,12 @@ def exchange_confirm(update: Update, context: CallbackContext):
     place_id = context.user_data.get("exchange_place_id")
     shown_marketing_ids = context.user_data.get("exchange_shown_marketing_ids", [])
     if not place_id or not shown_marketing_ids:
-        query.edit_message_text("会话已过期，请重新输入场所名称。")
+        query.edit_message_text("会话已过期，请重新输入场所名称。\n输入 /cancel 取消兑换")
         return ConversationHandler.END
 
     place = Place.objects.filter(id=place_id, exchange_points__gt=0).first()
     if not place:
-        query.edit_message_text("该场所不可兑换或不存在。")
+        query.edit_message_text("该场所不可兑换或不存在。\n输入 /cancel 取消兑换")
         return ConversationHandler.END
 
     tg_user = TelegramUser.objects.filter(user_id=query.from_user.id).first()
@@ -134,8 +135,18 @@ def exchange_confirm(update: Update, context: CallbackContext):
 
     if tg_user.points < place.exchange_points:
         query.edit_message_text(
-            f"你的积分不足，当前积分 {tg_user.points}，需要 {place.exchange_points}。"
+            f"❌ 积分不足\n\n"
+            f"当前积分：{tg_user.points}\n"
+            f"所需积分：{place.exchange_points}\n\n"
+            f"请通过发言或者提价报告获得积分。",
+            reply_markup=append_back_button(None)
         )
+
+        # 清理上下文，避免残留
+        context.user_data.pop("exchange_place_id", None)
+        context.user_data.pop("exchange_marketing_id", None)
+        context.user_data.pop("exchange_shown_marketing_ids", None)
+
         return ConversationHandler.END
 
     # 扣积分并保存记录（事务）
