@@ -30,6 +30,9 @@ def generate_config_file():
         secret_key = generate_secret_key()
         print("🔑 已自动生成 SECRET_KEY")
 
+    #REPORT_DEFAULT_USER_ID
+    report_user_id =  get_input_with_default("REPORT_DEFAULT_USER_ID (默认报告提交者id)",
+6809648292)
     # -----------------------------
     # ALLOWED_HOSTS
     # -----------------------------
@@ -131,6 +134,7 @@ def generate_config_file():
         "AWS": aws_config,
 
         "TELEGRAM_BOT_TOKEN": telegram_token,
+        "REPORT_DEFAULT_USER_ID":report_user_id
     }
 
     # 写入文件
