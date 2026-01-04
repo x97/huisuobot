@@ -143,15 +143,23 @@ DATABASES = {
         'HOST': env_config["DATABASE"]["HOST"],
         'PORT': env_config["DATABASE"]["PORT"],
 
-        **({
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'use_unicode': True,
-                'init_command': "SET character_set_connection=utf8mb4, collation_connection=utf8mb4_unicode_ci"
-            }
-        } if env_config["DATABASE"]["ENGINE"] == 'django.db.backends.mysql' else {})
+        # 关键：保持连接 60 秒，自动重连
+        'CONN_MAX_AGE': 60,
     }
 }
+
+# 如果是 MySQL，追加 OPTIONS
+if env_config["DATABASE"]["ENGINE"] == 'django.db.backends.mysql':
+    DATABASES['default']['OPTIONS'] = {
+        'charset': 'utf8mb4',
+        'use_unicode': True,
+        'autocommit': True,  # 关键：避免 InterfaceError (0, '')
+        'init_command': (
+            "SET character_set_connection=utf8mb4, "
+            "collation_connection=utf8mb4_unicode_ci"
+        ),
+    }
+
 
 STORAGE_MODE = env_config["STORAGE_MODE"]
 DEFAULT_FILE_STORAGE = "bot_core.storage_backends.get_default_storage"
