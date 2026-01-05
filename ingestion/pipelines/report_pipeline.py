@@ -7,13 +7,15 @@ from tgusers.models import TelegramUser
 from reports.models import Report
 from ingestion.services import fetch_channel_messages, parse_report
 from ingestion.models import IngestionSource
+from asgiref.sync import sync_to_async
 
 
 async def run_ingestion_pipeline():
     """
     主入口：遍历所有 IngestionSource，抓取消息 → 清洗 → 保存到 Report
     """
-    sources = IngestionSource.objects.filter(is_active=True)
+
+    sources = await sync_to_async(list)(IngestionSource.objects.filter(is_active=True))
 
     for source in sources:
         print(f"📡 开始抓取频道：{source.channel_name or source.channel_username}")
