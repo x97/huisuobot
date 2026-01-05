@@ -9,12 +9,7 @@ from ingestion.services import fetch_channel_messages, parse_report
 from ingestion.models import IngestionSource
 from asgiref.sync import sync_to_async
 
-
 async def run_ingestion_pipeline():
-    """
-    主入口：遍历所有 IngestionSource，抓取消息 → 清洗 → 保存到 Report
-    """
-
     sources = await sync_to_async(list)(
         IngestionSource.objects.filter(is_active=True)
     )
@@ -22,37 +17,29 @@ async def run_ingestion_pipeline():
     for source in sources:
         print(f"📡 开始抓取频道：{source.channel_name or source.channel_username}")
 
+        messages = await fetch_channel_messages(source=source)
+
+        if not messages:
+            print("⚠️ 无新消息")
+            continue
+
         max_message_id = source.last_message_id or 0
-        new_message_found = False
 
-        # ⭐ 使用 async for 逐条处理消息
-        async for msg in fetch_channel_messages(source=source):
-
-            new_message_found = True
-
-            # 更新最大 message_id
+        for msg in messages:
             if msg.id > max_message_id:
                 max_message_id = msg.id
 
-            # 解析消息
             parsed = parse_report(msg)
             if not parsed:
                 continue
 
-            # 保存到 Report（ORM 是同步的）
             await sync_to_async(save_report_from_parsed)(parsed)
 
-        if not new_message_found:
-            print("⚠️ 无新消息")
-            continue
-
-        # 更新抓取进度（ORM）
         source.last_message_id = max_message_id
         source.last_fetched_at = timezone.now()
         await sync_to_async(source.save)()
 
         print(f"✅ 完成：{source.channel_name}（最新 message_id={max_message_id}）")
-
 
 
 def save_report_from_parsed(parsed):

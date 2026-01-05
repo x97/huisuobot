@@ -35,7 +35,8 @@ async def fetch_channel_messages(
     source: IngestionSource,
     limit: int = 200,
     max_age_days: int = 180
-):
+) -> List[Message]:
+
     channel_id = source.channel_id
     last_id = source.last_message_id or 0
     fetch_mode = source.fetch_mode
@@ -48,6 +49,9 @@ async def fetch_channel_messages(
         f"📡 开始抓取频道消息: {source.channel_name or source.channel_username} "
         f"(ID={channel_id}) 使用账号 {account.phone_number}，延迟={delay}s"
     )
+
+    messages = []
+    count = 0
 
     try:
         if fetch_mode == "forward":
@@ -65,9 +69,8 @@ async def fetch_channel_messages(
                 limit=limit
             )
 
-        count = 0
-
         async for msg in iterator:
+
             # 时间过滤
             if msg.date < cutoff:
                 logger.info(f"⏹️ 停止：msg_id={msg.id} 超过 {max_age_days} 天")
@@ -76,14 +79,16 @@ async def fetch_channel_messages(
             count += 1
             logger.info(f"📨 进度：{count}/{limit}（msg_id={msg.id}）")
 
-            yield msg  # ⭐⭐⭐ 关键：async generator
+            messages.append(msg)
 
             await asyncio.sleep(delay)
 
+        logger.info(f"📥 抓取完成，共 {len(messages)} 条消息")
+        return messages
+
     except Exception as e:
         logger.error(f"❌ 抓取频道消息失败: {e}", exc_info=True)
-        return  # 注意：这里不能 return 值，只能 return None
-
+        return []
 
 
 # ============================
