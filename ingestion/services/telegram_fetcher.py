@@ -43,7 +43,7 @@ async def fetch_channel_messages(
     last_id = source.last_message_id or 0   # ⭐ 用 0 更安全
     fetch_mode = source.fetch_mode
     delay = get_safe_delay(source)
-
+    page_limit = min(100, limit)
     from datetime import datetime, timedelta, timezone
     cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
 
@@ -74,7 +74,7 @@ async def fetch_channel_messages(
                     offset_id=offset_id,
                     offset_date=None,
                     add_offset=0,
-                    limit=min(100, limit - count),  # 每次最多 100
+                    limit=page_limit,
                     max_id=0,
                     min_id=last_id,  # ⭐ 关键：只抓 id > last_id 的消息
                     hash=0
@@ -107,9 +107,6 @@ async def fetch_channel_messages(
                 count += 1
 
                 logger.info(f"📨 进度：{count}/{limit}（msg_id={msg.id}）")
-
-                if count >= limit:
-                    return messages
 
             # ⭐ 下一页：offset_id = 最后一条消息的 id
             offset_id = msgs[-1].id
