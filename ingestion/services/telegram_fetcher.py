@@ -82,7 +82,7 @@ async def fetch_channel_messages(
 
     except Exception as e:
         logger.error(f"❌ 抓取频道消息失败: {e}", exc_info=True)
-        return
+        return  # 注意：这里不能 return 值，只能 return None
 
 
 
