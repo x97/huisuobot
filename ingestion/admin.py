@@ -44,7 +44,6 @@ class IngestionSourceAdmin(admin.ModelAdmin):
 
     # 只读字段（不允许手动改抓取进度）
     readonly_fields = (
-        "last_message_id",
         "last_fetched_at",
         "created_at",
         "updated_at",
