@@ -7,6 +7,7 @@ from telethon.tl.types import Message
 
 from telethon_account.telethon_manager import default_manager
 from ingestion.models import IngestionSource
+from telethon.tl.functions.messages import GetHistoryRequest
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ def get_safe_delay(source: IngestionSource) -> float:
 # ============================
 # 🔥 1. 抓取频道消息（增量）
 # ============================
+
 @default_manager.with_account_switching()
 async def fetch_channel_messages(
     *,
@@ -38,7 +40,7 @@ async def fetch_channel_messages(
 ) -> List[Message]:
 
     channel_id = source.channel_id
-    last_id = source.last_message_id or 1
+    last_id = source.last_message_id or 0   # ⭐ 用 0 更安全
     fetch_mode = source.fetch_mode
     delay = get_safe_delay(source)
 
@@ -53,33 +55,64 @@ async def fetch_channel_messages(
     messages = []
     count = 0
 
+    # 获取频道实体
     try:
-        if fetch_mode == "forward":
-            iterator = client.iter_messages(
-                entity=channel_id,
-                min_id=last_id,
-                limit=limit,
-                reverse=False  # ⭐ forward 必须是 False
-            )
-        else:
-            iterator = client.iter_messages(
-                entity=channel_id,
-                max_id=last_id,
-                reverse=True,
-                limit=limit
-            )
+        entity = await client.get_entity(channel_id)
+        print("ENTITY:", entity)
+    except Exception as e:
+        print("❌ get_entity 错误：", e)
+        return []
 
-        async for msg in iterator:
+    try:
+        offset_id = 0  # ⭐ 从最新消息开始往前抓
 
-            # 时间过滤
-            if msg.date < cutoff:
-                logger.info(f"⏹️ 停止：msg_id={msg.id} 超过 {max_age_days} 天")
+        while True:
+            # ⭐ forward 模式：抓 last_id 之后的新消息
+            if fetch_mode == "forward":
+                history = await client(GetHistoryRequest(
+                    peer=entity,
+                    offset_id=offset_id,
+                    offset_date=None,
+                    add_offset=0,
+                    limit=min(100, limit - count),  # 每次最多 100
+                    max_id=0,
+                    min_id=last_id,  # ⭐ 关键：只抓 id > last_id 的消息
+                    hash=0
+                ))
+
+            # ⭐ backward 模式：补档，从最旧往后抓
+            else:
+                history = await client(GetHistoryRequest(
+                    peer=entity,
+                    offset_id=offset_id,
+                    offset_date=None,
+                    add_offset=0,
+                    limit=min(100, limit - count),
+                    max_id=last_id,  # ⭐ 关键：只抓 id < last_id 的消息
+                    min_id=0,
+                    hash=0
+                ))
+
+            msgs = history.messages
+            if not msgs:
                 break
 
-            count += 1
-            logger.info(f"📨 进度：{count}/{limit}（msg_id={msg.id}）")
+            for msg in msgs:
+                # 时间过滤
+                if msg.date < cutoff:
+                    logger.info(f"⏹️ 停止：msg_id={msg.id} 超过 {max_age_days} 天")
+                    return messages
 
-            messages.append(msg)
+                messages.append(msg)
+                count += 1
+
+                logger.info(f"📨 进度：{count}/{limit}（msg_id={msg.id}）")
+
+                if count >= limit:
+                    return messages
+
+            # ⭐ 下一页：offset_id = 最后一条消息的 id
+            offset_id = msgs[-1].id
 
             await asyncio.sleep(delay)
 
