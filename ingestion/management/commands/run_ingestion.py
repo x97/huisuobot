@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 import asyncio
-from ingestion.pipeline import run_ingestion_pipeline
+from ingestion.pipelines import run_ingestion_pipeline
 
 class Command(BaseCommand):
     help = "Run ingestion pipeline"
