@@ -41,25 +41,21 @@ async def fetch_channel_messages(
     fetch_mode = source.fetch_mode
     delay = get_safe_delay(source)
 
+    from datetime import datetime, timedelta, timezone
+    cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
+
     logger.info(
         f"📡 开始抓取频道消息: {source.channel_name or source.channel_username} "
         f"(ID={channel_id}) 使用账号 {account.phone_number}，延迟={delay}s"
     )
 
-    from datetime import datetime, timedelta, timezone
-    cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
-
-    count = 0
-
     try:
-        iterator = None
-
         if fetch_mode == "forward":
             iterator = client.iter_messages(
                 entity=channel_id,
                 min_id=last_id,
                 limit=limit,
-                reverse=True  # 正序
+                reverse=True
             )
         else:
             iterator = client.iter_messages(
@@ -68,6 +64,8 @@ async def fetch_channel_messages(
                 reverse=True,
                 limit=limit
             )
+
+        count = 0
 
         async for msg in iterator:
             # 时间过滤
@@ -78,12 +76,12 @@ async def fetch_channel_messages(
             count += 1
             logger.info(f"📨 进度：{count}/{limit}（msg_id={msg.id}）")
 
-            yield msg  # ⭐⭐⭐ 关键：边抓取边返回
+            yield msg  # ⭐⭐⭐ 关键：async generator
 
             await asyncio.sleep(delay)
 
     except Exception as e:
-        logger.error(f"❌ 抓取失败: {e}", exc_info=True)
+        logger.error(f"❌ 抓取频道消息失败: {e}", exc_info=True)
         return
 
 
