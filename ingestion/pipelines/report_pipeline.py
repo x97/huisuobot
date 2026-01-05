@@ -20,10 +20,7 @@ async def run_ingestion_pipeline():
     for source in sources:
         print(f"📡 开始抓取频道：{source.channel_name or source.channel_username}")
 
-        messages = await fetch_channel_messages(
-            channel_id=source.channel_id,
-            last_message_id=source.last_message_id
-        )
+        messages = await fetch_channel_messages(source=source)
 
         if not messages:
             print("⚠️ 无新消息")
