@@ -1,0 +1,1 @@
+from .report_pipeline import run_ingestion_pipeline
