@@ -33,12 +33,12 @@ async def fetch_channel_messages(
     client,
     account,
     source: IngestionSource,
-    limit: int = 200
-) -> List[Message]:
-
+    limit: int = 200,
+    max_age_days: int = 180
+):
     channel_id = source.channel_id
     last_id = source.last_message_id or 0
-    fetch_mode = source.fetch_mode  # forward / backward
+    fetch_mode = source.fetch_mode
     delay = get_safe_delay(source)
 
     logger.info(
@@ -46,36 +46,46 @@ async def fetch_channel_messages(
         f"(ID={channel_id}) 使用账号 {account.phone_number}，延迟={delay}s"
     )
 
-    messages = []
+    from datetime import datetime, timedelta, timezone
+    cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
+
+    count = 0
 
     try:
-        # forward 模式：抓取 last_id 之后的新消息
+        iterator = None
+
         if fetch_mode == "forward":
-            async for msg in client.iter_messages(
+            iterator = client.iter_messages(
                 entity=channel_id,
                 min_id=last_id,
-                limit=limit
-            ):
-                messages.append(msg)
-                await asyncio.sleep(delay)  # ⭐ 安全延迟
-
-        # backward 模式：从最旧往后抓（适合补档）
+                limit=limit,
+                reverse=True  # 正序
+            )
         else:
-            async for msg in client.iter_messages(
+            iterator = client.iter_messages(
                 entity=channel_id,
                 max_id=last_id,
                 reverse=True,
                 limit=limit
-            ):
-                messages.append(msg)
-                await asyncio.sleep(delay)  # ⭐ 安全延迟
+            )
 
-        logger.info(f"📥 抓取到 {len(messages)} 条消息")
-        return messages
+        async for msg in iterator:
+            # 时间过滤
+            if msg.date < cutoff:
+                logger.info(f"⏹️ 停止：msg_id={msg.id} 超过 {max_age_days} 天")
+                break
+
+            count += 1
+            logger.info(f"📨 进度：{count}/{limit}（msg_id={msg.id}）")
+
+            yield msg  # ⭐⭐⭐ 关键：边抓取边返回
+
+            await asyncio.sleep(delay)
 
     except Exception as e:
-        logger.error(f"❌ 抓取频道消息失败: {e}", exc_info=True)
-        return []
+        logger.error(f"❌ 抓取失败: {e}", exc_info=True)
+        return
+
 
 
 # ============================
