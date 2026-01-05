@@ -38,7 +38,7 @@ async def fetch_channel_messages(
 ) -> List[Message]:
 
     channel_id = source.channel_id
-    last_id = source.last_message_id or 0
+    last_id = source.last_message_id or 1
     fetch_mode = source.fetch_mode
     delay = get_safe_delay(source)
 
@@ -59,7 +59,7 @@ async def fetch_channel_messages(
                 entity=channel_id,
                 min_id=last_id,
                 limit=limit,
-                reverse=True
+                reverse=False  # ⭐ forward 必须是 False
             )
         else:
             iterator = client.iter_messages(

@@ -30,8 +30,8 @@ class IngestionSource(models.Model):
     )
 
     FETCH_MODES = (
-        ("forward", "从最新往前抓"),
-        ("backward", "从最旧往后抓"),
+        ("forward", "从最新往前抓（增量抓取）"),
+        ("backward", "从最旧往后抓（补档）"),
     )
 
     # 平台
