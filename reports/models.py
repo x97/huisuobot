@@ -58,6 +58,11 @@ class Report(models.Model):
     review_note = models.TextField(null=True, blank=True, verbose_name='审核备注')
 
     created_at = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
+    published_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='发布日期'
+    )
 
     point = models.IntegerField(default=0, verbose_name='报告积分')
 

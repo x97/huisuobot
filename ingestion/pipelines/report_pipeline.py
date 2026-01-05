@@ -69,6 +69,8 @@ def save_report_from_parsed(parsed):
     report = Report.objects.create(
         reporter=reporter,
         content=parsed["content"],
+        place_name=parsed.get("place_name"),
+        published_at=parsed.get("published_at"),
     )
 
     print(f"📝 已保存 Report #{report.id}")
