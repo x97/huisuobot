@@ -149,7 +149,7 @@ def report_pagination_callback(update: Update, context: CallbackContext):
 # 7. 注册 Handlers
 # ============================
 
-def register_report_handlers(dp):
+def register_report_query_handlers(dp):
     # 只匹配以“报告#”开头的消息
     dp.add_handler(MessageHandler(
         Filters.regex(r"^报告#.+") & Filters.chat_type.groups,

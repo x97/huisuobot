@@ -8,7 +8,7 @@ from .user_report import start_report, confirm_report, cancel_report  # 复用�
 from .user_report import register_user_add_reporter
 from .user_reporets_list import register_reports_list_handlers
 from .admin_review import register_admin_report_handlers
-from .report_query import register_report_handlers
+from .report_query import register_report_query_handlers
 
 def reports_callback_router(update, context):
     query = update.callback_query
