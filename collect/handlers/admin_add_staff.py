@@ -1,5 +1,3 @@
-# collect/handlers/admin_add_staff.py
-
 import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -12,16 +10,18 @@ from telegram.ext import (
 )
 
 from places.models import Place, Staff
-from collect.models import Submission
+from collect.models import Submission, SubmissionPhoto
 from tgusers.services import update_or_create_user
 from common.keyboards import append_back_button
+from django.core.files.base import ContentFile
 
 
 # ============================
 # 🔥 ConversationHandler 状态
 # ============================
 TYPING = 1
-CONFIRMING = 2
+UPLOADING_PHOTOS = 2
+CONFIRMING = 3
 
 ADMIN_STAFF_FIELDS = {
     "会所名称": "place_name",
@@ -68,13 +68,12 @@ def admin_add_staff_start(update: Update, context: CallbackContext):
 # ============================
 def admin_add_staff_cancel(update: Update, context: CallbackContext):
     update.message.reply_text("已取消技师创建流程。", reply_markup=append_back_button(None))
-    context.user_data.pop("admin_add_staff_data", None)
     context.user_data.clear()
     return ConversationHandler.END
 
 
 # ============================
-# 🔥 3. 管理员填写模板 → 自动解析并创建预览
+# 🔥 3. 管理员填写模板 → 自动解析并进入上传照片阶段
 # ============================
 def admin_add_staff_receive(update: Update, context: CallbackContext):
     message = update.message
@@ -105,8 +104,50 @@ def admin_add_staff_receive(update: Update, context: CallbackContext):
         parsed[field] = match.group(1).strip() if match else ""
 
     context.user_data["admin_add_staff_data"] = parsed
+    context.user_data["admin_add_staff_photos"] = []
 
-    # 预览卡片
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📎 不上传照片，直接确认", callback_data="staff_admin:skip_photos")]
+    ])
+
+    message.reply_text(
+        "📸 你可以继续上传 1～5 张照片（可选）。\n"
+        "如需取消，请发送 /cancel",
+        reply_markup=keyboard
+    )
+
+    return UPLOADING_PHOTOS
+
+
+# ============================
+# 🔥 4. 管理员上传照片
+# ============================
+def admin_add_staff_receive_photo(update: Update, context: CallbackContext):
+    photos = context.user_data.get("admin_add_staff_photos", [])
+
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+        photos.append(file_id)
+        context.user_data["admin_add_staff_photos"] = photos
+
+        update.message.reply_text(
+            f"📸 已收到照片，目前共 {len(photos)} 张。\n"
+            "继续发送照片，或点击下方按钮跳过上传。",
+        )
+
+    return UPLOADING_PHOTOS
+
+
+# ============================
+# 🔥 5. 跳过上传照片 → 进入预览
+# ============================
+def admin_add_staff_skip_photos(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+
+    parsed = context.user_data.get("admin_add_staff_data")
+    photos = context.user_data.get("admin_add_staff_photos", [])
+
     preview = (
         "📋 <b>技师信息预览</b>\n\n"
         f"🏠 <b>会所：</b>{parsed['place_name']}\n"
@@ -116,6 +157,7 @@ def admin_add_staff_receive(update: Update, context: CallbackContext):
         f"💗 <b>胸围信息：</b>{parsed['bust_info']}\n"
         f"😍 <b>颜值信息：</b>{parsed['attractiveness']}\n"
         f"📝 <b>其他信息：</b>{parsed['extra_info']}\n\n"
+        f"📸 <b>照片数量：</b>{len(photos)}\n\n"
         "请确认是否创建该技师。"
     )
 
@@ -126,12 +168,12 @@ def admin_add_staff_receive(update: Update, context: CallbackContext):
         ]
     ])
 
-    message.reply_text(preview, parse_mode="HTML", reply_markup=keyboard)
+    query.message.edit_text(preview, parse_mode="HTML", reply_markup=keyboard)
     return CONFIRMING
 
 
 # ============================
-# 🔥 4. 管理员确认创建
+# 🔥 6. 管理员确认创建
 # ============================
 def admin_add_staff_confirm(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -143,22 +185,24 @@ def admin_add_staff_confirm(update: Update, context: CallbackContext):
         return ConversationHandler.END
 
     parsed = context.user_data.get("admin_add_staff_data")
+    photos = context.user_data.get("admin_add_staff_photos", [])
+
     if not parsed:
         query.message.reply_text("❌ 没有可创建的数据，请重新开始流程。")
         return ConversationHandler.END
 
-    # 获取或创建 Place
+    # 创建 Place
     place, _ = Place.objects.get_or_create(name=parsed["place_name"])
 
-    # 获取或创建 Staff
+    # 创建 Staff
     staff, created_staff = Staff.objects.get_or_create(
         place=place,
         nickname=parsed["nickname"],
         defaults={"is_active": True}
     )
 
-    # 创建 Submission（档案来源）
-    Submission.objects.create(
+    # 创建 Submission
+    submission = Submission.objects.create(
         staff=staff,
         nickname=parsed["nickname"],
         birth_year=parsed["birth_year"],
@@ -169,31 +213,43 @@ def admin_add_staff_confirm(update: Update, context: CallbackContext):
         status="approved",
     )
 
-    if created_staff:
-        msg = f"✅ 技师已创建：{place.name} - {staff.nickname}"
-    else:
-        msg = f"🔄 技师已存在，已更新档案：{place.name} - {staff.nickname}"
+    # 保存照片（自动审核通过）
+    for file_id in photos:
+        tg_file = context.bot.get_file(file_id)
+        file_bytes = tg_file.download_as_bytearray()
+
+        SubmissionPhoto.objects.create(
+            submission=submission,
+            image=ContentFile(file_bytes, name=f"{tg_file.file_id}.jpg"),
+            status="approved",
+        )
+
+    msg = (
+        f"✅ 技师已创建：{place.name} - {staff.nickname}"
+        if created_staff else
+        f"🔄 技师已存在，已更新档案：{place.name} - {staff.nickname}"
+    )
 
     query.message.edit_text(msg, reply_markup=append_back_button(None))
 
-    context.user_data.pop("admin_add_staff_data", None)
+    context.user_data.clear()
     return ConversationHandler.END
 
 
 # ============================
-# 🔥 5. 管理员取消预览
+# 🔥 7. 管理员取消预览
 # ============================
 def admin_add_staff_cancel_preview(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
     query.message.edit_text("❌ 已取消创建技师。", reply_markup=append_back_button(None))
-    context.user_data.pop("admin_add_staff_data", None)
+    context.user_data.clear()
     return ConversationHandler.END
 
 
 # ============================
-# 🔥 6. 注册 handlers（ConversationHandler）
+# 🔥 8. 注册 handlers（ConversationHandler）
 # ============================
 def register_admin_add_staff_handlers(dp):
 
@@ -208,6 +264,10 @@ def register_admin_add_staff_handlers(dp):
                     admin_add_staff_receive
                 ),
             ],
+            UPLOADING_PHOTOS: [
+                MessageHandler(Filters.photo, admin_add_staff_receive_photo),
+                CallbackQueryHandler(admin_add_staff_skip_photos, pattern=r"^staff_admin:skip_photos$"),
+            ],
             CONFIRMING: [
                 CallbackQueryHandler(admin_add_staff_confirm, pattern=r"^staff_admin:confirm$"),
                 CallbackQueryHandler(admin_add_staff_cancel_preview, pattern=r"^staff_admin:cancel_preview$"),
@@ -218,8 +278,7 @@ def register_admin_add_staff_handlers(dp):
         ],
         per_user=True,
         per_chat=True,
-        allow_reentry=True,   # ⭐⭐ 必须加
+        allow_reentry=True,
     )
 
     dp.add_handler(conv)
-
