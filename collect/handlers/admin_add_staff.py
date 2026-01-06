@@ -130,12 +130,18 @@ def admin_add_staff_receive_photo(update: Update, context: CallbackContext):
         photos.append(file_id)
         context.user_data["admin_add_staff_photos"] = photos
 
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📎 不上传照片，直接确认", callback_data="staff_admin:skip_photos")]
+        ])
+
         update.message.reply_text(
             f"📸 已收到照片，目前共 {len(photos)} 张。\n"
             "继续发送照片，或点击下方按钮跳过上传。",
+            reply_markup=keyboard
         )
 
     return UPLOADING_PHOTOS
+
 
 
 # ============================
