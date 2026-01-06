@@ -41,7 +41,7 @@ def list_campaign_links_task(page: int, page_size: int, **kwargs):
         # 5) 拼接 Markdown 链接
         lines.append(f"💎 [{campaign.title}]({url})       💰-{campaign.reward_coins}")
     if lines:
-        text = "💰💰💰所有悬赏征集汇总💰💰💰"
+        text = "💰💰💰所有悬赏征集汇总💰💰💰\n\n"
         text += "\n".join(lines)
     else:
         text = "暂无悬赏信息"
