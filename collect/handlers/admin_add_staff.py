@@ -69,6 +69,7 @@ def admin_add_staff_start(update: Update, context: CallbackContext):
 def admin_add_staff_cancel(update: Update, context: CallbackContext):
     update.message.reply_text("已取消技师创建流程。", reply_markup=append_back_button(None))
     context.user_data.pop("admin_add_staff_data", None)
+    context.user_data.clear()
     return ConversationHandler.END
 
 
@@ -202,7 +203,10 @@ def register_admin_add_staff_handlers(dp):
         ],
         states={
             TYPING: [
-                MessageHandler(Filters.text & ~Filters.command, admin_add_staff_receive),
+                MessageHandler(
+                    Filters.text & ~Filters.regex(r"^/cancel"),
+                    admin_add_staff_receive
+                ),
             ],
             CONFIRMING: [
                 CallbackQueryHandler(admin_add_staff_confirm, pattern=r"^staff_admin:confirm$"),
@@ -214,6 +218,8 @@ def register_admin_add_staff_handlers(dp):
         ],
         per_user=True,
         per_chat=True,
+        allow_reentry=True,   # ⭐⭐ 必须加
     )
 
     dp.add_handler(conv)
+
