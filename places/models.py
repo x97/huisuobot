@@ -4,6 +4,7 @@ from django.db import models
 class Place(models.Model):
     name = models.CharField("场所名", max_length=200)
     short_name = models.CharField("场所简称", max_length=100, blank=True)
+    first_letter = models.CharField("场所首字母", max_length=12, blank=True)
     city = models.CharField("城市", max_length=100)
     district = models.CharField("区域", max_length=100, blank=True)
     address = models.CharField("地址", max_length=300, blank=True)
@@ -18,6 +19,20 @@ class Place(models.Model):
 
     def __str__(self):
         return self.short_name or self.name
+
+class PlaceFormerName(models.Model):
+    place = models.ForeignKey("Place", on_delete=models.CASCADE, related_name="former_names")
+    name = models.CharField("名称", max_length=200)
+    short_name = models.CharField("简称", max_length=100, blank=True)
+    first_letter = models.CharField("首字母", max_length=12, blank=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "场所曾用名"
+        verbose_name_plural = "场所曾用名"
+
+    def __str__(self):
+        return self.name
 
 
 class Marketing(models.Model):

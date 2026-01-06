@@ -1,7 +1,7 @@
 # admin_review.py
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Place, Marketing, Staff
+from .models import Place, Marketing, Staff,PlaceFormerName
 
 
 class MarketingInline(admin.TabularInline):
@@ -24,6 +24,12 @@ class StaffInline(admin.TabularInline):
     readonly_fields = ('created_at',)
     ordering = ('-is_active', 'nickname')
 
+
+class PlaceFormerNameInline(admin.TabularInline):
+    model = PlaceFormerName
+    extra = 1
+    fields = ("name", "short_name", "first_letter", "created_at")
+    readonly_fields = ("created_at",)
 
 
 
@@ -54,7 +60,7 @@ class PlaceAdmin(admin.ModelAdmin):
     )
 
     # 内联模型
-    inlines = [MarketingInline, StaffInline]
+    inlines = [MarketingInline, StaffInline, PlaceFormerNameInline]
 
     readonly_fields = ('created_at', 'updated_at')
 
