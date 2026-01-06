@@ -14,10 +14,6 @@ def list_campaign_links_task(page: int, page_size: int, **kwargs):
     # 1) 查询所有有效悬赏
     qs = Campaign.objects.filter(is_active=True).order_by("-created_at")
 
-    # 支持额外过滤
-    if kwargs:
-        qs = qs.filter(**kwargs)
-
     paginator = Paginator(qs, page_size)
     page_obj = paginator.get_page(page)
 
