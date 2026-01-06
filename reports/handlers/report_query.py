@@ -7,7 +7,6 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 
 from reports.models import Report
-from places.services import get_all_place_names, find_place_by_name
 
 
 
@@ -89,6 +88,8 @@ def send_report_page(update, context, reports, page, place, place_key):
 # ============================
 
 def report_query_handler(update: Update, context: CallbackContext):
+    from places.services import get_all_place_names, find_place_by_name
+
     text = update.message.text.strip()
 
     if not text.startswith("报告#"):
@@ -119,6 +120,8 @@ def report_query_handler(update: Update, context: CallbackContext):
 # ============================
 
 def report_pagination_callback(update: Update, context: CallbackContext):
+    from places.services import get_all_place_names, find_place_by_name
+
     query = update.callback_query
     query.answer()
 
