@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'lottery',
     'django_q',
     'storages',
+    'tgfunc_carousel',
     'django_apscheduler',
     'django.contrib.admin',
     'django.contrib.auth',

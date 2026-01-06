@@ -10,8 +10,16 @@ class MyGroup(models.Model):
     group_username = models.CharField(max_length=255, null=True, blank=True, help_text="群组 @username")
 
     main_channel_id = models.BigIntegerField(null=True, blank=True, help_text="主频道 chat_id")
+    main_channel_username = models.CharField(max_length=255, null=True, blank=True,
+                                             help_text="主频道 @username")
+
     report_channel_id = models.BigIntegerField(null=True, blank=True, help_text="报告频道 chat_id")
+    report_channel_username = models.CharField(max_length=255, null=True, blank=True,
+                                             help_text="报告频道 @username")
+
     notify_channel_id = models.BigIntegerField(null=True, blank=True, help_text="通知频道 chat_id")
+    notify_channel_username = models.CharField(max_length=255, null=True, blank=True,
+                                             help_text="通知频道 @username")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
