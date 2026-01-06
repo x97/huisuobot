@@ -69,4 +69,4 @@ def register_report_handlers(dispatcher):
     register_user_add_reporter(dispatcher)
     register_reports_list_handlers(dispatcher)
     register_admin_report_handlers(dispatcher)
-    register_report_handlers(dispatcher)
+    register_report_query_handlers(dispatcher)
