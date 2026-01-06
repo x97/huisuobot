@@ -47,7 +47,7 @@ class PlaceAdmin(admin.ModelAdmin):
     # 详情页字段分组
     fieldsets = (
         ('基本信息', {
-            'fields': ('name', 'short_name', 'city', 'district', 'address')
+            'fields': ('name', 'short_name', 'first_letter','city', 'district', 'address')
         }),
         ('积分与描述', {
             'fields': ('exchange_points', 'description'),
