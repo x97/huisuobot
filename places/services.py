@@ -5,26 +5,30 @@ from django.db.models import Q
 # ============================
 
 def find_place_by_name(query_name: str):
-    """根据 name / short_name / first_letter 或曾用名查找 Place"""
+    query_name = query_name.strip()
+
+    # 主表匹配（大小写不敏感）
     place = Place.objects.filter(
-        Q(name=query_name) |
-        Q(short_name=query_name) |
-        Q(first_letter=query_name)
+        Q(name__iexact=query_name) |
+        Q(short_name__iexact=query_name) |
+        Q(first_letter__iexact=query_name)
     ).first()
 
     if place:
         return place
 
+    # 曾用名匹配（大小写不敏感）
     former = PlaceFormerName.objects.filter(
-        Q(name=query_name) |
-        Q(short_name=query_name) |
-        Q(first_letter=query_name)
+        Q(name__iexact=query_name) |
+        Q(short_name__iexact=query_name) |
+        Q(first_letter__iexact=query_name)
     ).first()
 
     if former:
         return former.place
 
     return None
+
 
 
 def get_all_place_names(place: Place):
