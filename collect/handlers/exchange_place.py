@@ -220,35 +220,31 @@ def cancel_exchange(update: Update, context: CallbackContext):
     else:
         reply_markup = append_back_button(None)
         update.message.reply_text("已取消。", reply_markup=reply_markup)
+    context.user_data.clear()
     return ConversationHandler.END
 
-
 def get_exchange_conversation_handler() -> ConversationHandler:
-    """构造 ConversationHandler 并返回，供注册使用"""
     conv = ConversationHandler(
         entry_points=[
             CallbackQueryHandler(exchange_start, pattern=rf"^{PREFIX}:start$"),
             CommandHandler("exchange", exchange_start),
-            CommandHandler("cancel", cancel_exchange),
-
         ],
         states={
             EXCHANGE_WAITING_FOR_PLACE: [
-                MessageHandler(Filters.text & ~Filters.command, exchange_input_place),
-                CommandHandler("cancel", cancel_exchange),
+                # 关键：避免 /cancel 被当成普通文本
+                MessageHandler(Filters.text & ~Filters.regex(r"^/cancel"), exchange_input_place),
             ],
             EXCHANGE_WAITING_CONFIRM: [
                 CallbackQueryHandler(exchange_confirm, pattern=rf"^{PREFIX}:confirm:\d+$"),
-                CommandHandler("cancel", cancel_exchange),
-
             ],
         },
         fallbacks=[
-            CallbackQueryHandler(cancel_exchange, pattern=rf"^core:back_main$"),
             CommandHandler("cancel", cancel_exchange),
-
+            CallbackQueryHandler(cancel_exchange, pattern=rf"^core:back_main$"),
         ],
         per_user=True,
+        per_chat=True,
+        allow_reentry=True,   # ⭐ 必须加
     )
     return conv
 

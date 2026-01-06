@@ -135,6 +135,7 @@ def reward_submit_cancel(update: Update, context: CallbackContext):
         "已取消悬赏提交。",
         reply_markup=append_back_button(None)
     )
+    context.user_data.clear()
     return ConversationHandler.END
 
 
@@ -345,25 +346,32 @@ def register_reward_submit_handlers(dp):
             MessageHandler(Filters.regex(r"^/start reward_\d+$"), reward_submit_start_private),
             CallbackQueryHandler(reward_submit_start, pattern=r"^reward:submit:\d+$"),
         ],
+
         states={
             SUBMITTING_TEXT: [
-                MessageHandler(Filters.text & ~Filters.command, reward_submit_receive_text),
+                # 避免 /cancel 被当成普通文本
+                MessageHandler(Filters.text & ~Filters.regex(r"^/cancel"), reward_submit_receive_text),
             ],
+
             SUBMITTING_PHOTOS: [
                 MessageHandler(Filters.photo, reward_submit_receive_photo),
                 CommandHandler("done", reward_submit_done),
                 CallbackQueryHandler(reward_submit_skip_photos, pattern=r"^reward:skip_photos$"),
             ],
+
             CONFIRMING: [
                 CallbackQueryHandler(reward_submit_confirm, pattern=r"^reward:confirm_submit$"),
                 CallbackQueryHandler(reward_submit_restart, pattern=r"^reward:restart$"),
             ],
         },
+
         fallbacks=[
             CommandHandler("cancel", reward_submit_cancel),
         ],
+
         per_user=True,
         per_chat=True,
+        allow_reentry=True,   # ⭐ 必须加
     )
 
     dp.add_handler(conv)

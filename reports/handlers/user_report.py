@@ -225,25 +225,32 @@ report_conversation_handler = ConversationHandler(
         CallbackQueryHandler(start_report, pattern=r"^reports:start_report$"),
         CommandHandler("submit_report", start_report),
     ],
+
     states={
         REPORT_WAITING_FOR_IMAGE: [
             MessageHandler(Filters.photo, handle_image),
-            MessageHandler(Filters.text & ~Filters.command, handle_image),
+            # 避免 /cancel 被当成普通文本
+            MessageHandler(Filters.text & ~Filters.regex(r"^/cancel"), handle_image),
         ],
+
         REPORT_WAITING_FOR_CONTENT: [
-            MessageHandler(Filters.text & ~Filters.command, handle_content),
+            MessageHandler(Filters.text & ~Filters.regex(r"^/cancel"), handle_content),
         ],
+
         REPORT_WAITING_FOR_CONFIRMATION: [
             CallbackQueryHandler(confirm_report, pattern=r"^reports:confirm_report$"),
         ],
     },
+
     fallbacks=[
         CommandHandler('cancel', cancel_report),
         CallbackQueryHandler(cancel_report, pattern=r"^reports:cancel_report$"),
     ],
-    allow_reentry=False,
+
+    allow_reentry=True,   # ⭐ 必须加
     per_user=True,
 )
+
 
 
 def register_user_add_reporter(dispatcher):

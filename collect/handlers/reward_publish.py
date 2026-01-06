@@ -235,6 +235,7 @@ def admin_cancel(update: Update, context: CallbackContext):
         q.edit_message_text("已取消发布。", reply_markup=append_back_button(None))
     else:
         update.message.reply_text("已取消。", reply_markup=append_back_button(None))
+    context.user_data.clear()
     return ConversationHandler.END
 
 def admin_finish_channels(update: Update, context: CallbackContext):
@@ -245,7 +246,8 @@ def admin_finish_channels(update: Update, context: CallbackContext):
     return show_reward_summary(update, context)
 
 def get_admin_publish_handler():
-    only_text = Filters.text & ~Filters.command & Filters.chat_type.private
+    # 关键：避免 /cancel 被当成普通文本
+    only_text = Filters.text & ~Filters.regex(r"^/cancel") & Filters.chat_type.private
 
     return ConversationHandler(
         entry_points=[
@@ -254,21 +256,40 @@ def get_admin_publish_handler():
         ],
 
         states={
-            WAITING_PLACE: [MessageHandler(only_text, admin_input_place)],
-            WAITING_NICKNAME: [MessageHandler(only_text, admin_input_nickname)],
-            WAITING_TITLE: [MessageHandler(only_text, admin_input_title)],
-            WAITING_DESCRIPTION: [MessageHandler(only_text, admin_input_description)],
-            WAITING_REWARD: [MessageHandler(only_text, admin_input_reward)],
-            WAITING_CHANNEL: [MessageHandler(only_text, admin_input_channel),
-                              CommandHandler("done", admin_finish_channels)
-                              ],
+            WAITING_PLACE: [
+                MessageHandler(only_text, admin_input_place),
+            ],
+            WAITING_NICKNAME: [
+                MessageHandler(only_text, admin_input_nickname),
+            ],
+            WAITING_TITLE: [
+                MessageHandler(only_text, admin_input_title),
+            ],
+            WAITING_DESCRIPTION: [
+                MessageHandler(only_text, admin_input_description),
+            ],
+            WAITING_REWARD: [
+                MessageHandler(only_text, admin_input_reward),
+            ],
+            WAITING_CHANNEL: [
+                MessageHandler(only_text, admin_input_channel),
+                CommandHandler("done", admin_finish_channels),
+            ],
             WAITING_CONFIRM: [
                 CallbackQueryHandler(admin_confirm_publish, pattern=rf"^{PREFIX}:confirm$"),
                 CallbackQueryHandler(admin_cancel, pattern=rf"^{PREFIX}:cancel$"),
             ],
         },
-        fallbacks=[CommandHandler("cancel", admin_cancel)],
+
+        fallbacks=[
+            CommandHandler("cancel", admin_cancel),
+        ],
+
+        per_user=True,
+        per_chat=True,
+        allow_reentry=True,   # ⭐ 必须加
     )
+
 
 def register_reward_publish_handlers(dispatcher):
     """
