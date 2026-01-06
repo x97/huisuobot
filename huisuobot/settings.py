@@ -107,6 +107,23 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# Q_CLUSTER 配置
+Q_CLUSTER = {
+    'name': 'shuilaoban', #项目名
+    'workers': 1,  # 工作进程数
+    'recycle': 500,  # 每个工作进程处理500个任务后重启
+    'timeout': 60,  # 任务超时时间
+    'compress': True,
+    'save_limit': 250,  # 保存最多250个任务结果
+    'queue_limit': 200,  # 队列最大任务数
+    'cpu_affinity': 1,
+    'label': 'Django Q',
+    "max_attempts": 2,  # 最多尝试一次，避免无限重发
+    # 使用 Django ORM 作为后端（无需 Redis）
+    'orm': 'default',
+}
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
