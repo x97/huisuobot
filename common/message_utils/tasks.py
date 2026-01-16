@@ -25,14 +25,14 @@ def queue_message(
         # 提交异步任务（仅传递可序列化参数）
         task_id = async_task(
             # 替换为你实际的函数导入路径
-            'utils.message_utils.sender.send_text_message_cli',
+            'common.message_utils.sender.send_text_message_cli',
             chat_id,
             text,
             buttons,                # 保留button参数（dict类型）
             disable_web_page_preview,
             pin_message,
             parse_mode,
-            hook='utils.message_utils.tasks.message_hook',  # 替换为实际hook路径
+            hook='common.message_utils.tasks.message_hook',  # 替换为实际hook路径
             timeout=60,
             q_options={
                 'queue': 'telegram_messages',
