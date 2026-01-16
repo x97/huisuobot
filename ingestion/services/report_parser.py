@@ -147,7 +147,7 @@ def parse_report(msg: Message) -> Optional[Dict[str, str]]:
     # 4. 返回结构里顺便带上发布时间
     return {
         "content": report_text,
-        "place_name": fields.get("会所名称"),
+        "place_name": fields.get("会所名称")[:48],
         "published_at": msg.date,  # 这里把 Telethon 的发布时间带出来
     }
 
