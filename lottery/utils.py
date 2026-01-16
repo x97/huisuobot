@@ -480,11 +480,11 @@ def handle_join_lottery(update, context):
     # 4. 验证用户积分是否足够
     # 因为这里有的用户头衔高 有抽奖折扣
     required_points = int(lottery.required_points * user.discount)
-    if user.total_points < required_points:
+    if user.points < required_points:
         context.bot.send_message(
             chat_id=chat_id,
             text=f"❌ {user.first_name or '' }积分不足！参与本次抽奖需要 {lottery.required_points} 积分，"
-            f"您当前剩余 {user.total_points} XP。"
+            f"您当前剩余 {user.points} XP。"
         )
         return
 
@@ -497,7 +497,7 @@ def handle_join_lottery(update, context):
     # 6. 执行参与逻辑
     try:
         # 扣减积分
-        user.total_points -= required_points
+        user.points -= required_points
         user.save()
 
         # 记录参与信息
@@ -515,7 +515,7 @@ def handle_join_lottery(update, context):
             message = (
                 f"🎉 恭喜【{user.first_name or ''} {user.last_name or ''}】成功参与\n"
                 f"【{lottery.title}】抽奖活动！\n"
-                f"✅ 已扣除 {required_points} 积分，当前剩余 {user.total_points} 积分。\n"
+                f"✅ 已扣除 {required_points} 积分，当前剩余 {user.points} 积分。\n"
                 f"📊 本次抽奖已有 {total_participants} 人次参与。\n"
             )
         else:
@@ -523,7 +523,7 @@ def handle_join_lottery(update, context):
             message = (
                 f"🎉 恭喜【{user.first_name or ''} {user.last_name or '' }】成功参与！\n"
                 f"【{lottery.title}】抽奖活动！\n"
-                f"✅ 已扣除 {required_points} 积分，当前剩余 {user.total_points} 积分。\n"
+                f"✅ 已扣除 {required_points} 积分，当前剩余 {user.points} 积分。\n"
                 f"✨ 您已参与 {new_participation_count} 次，中奖概率已提升！\n"
                 f"📊 本次抽奖已有 {total_participants} 人次参与。\n\n"
             )

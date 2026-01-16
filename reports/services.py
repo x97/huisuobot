@@ -54,9 +54,9 @@ def approve_report(report: Report, admin_user: TelegramUser, reward_points: int)
         # 给提交者加积分（示例字段名）
         reporter = report.reporter
         if reporter:
-            reporter.total_points = getattr(reporter, 'total_points', 0) + reward_points
-            reporter.experience_points = getattr(reporter, 'experience_points', 0) + 200
-            reporter.save(update_fields=['total_points', 'experience_points'])
+            reporter.points = getattr(reporter, 'points', 0) + reward_points
+            reporter.experiences = getattr(reporter, 'experiences', 0) + 200
+            reporter.save(update_fields=['points', 'experiences'])
 
         # 你可以在这里触发通知（post_save 信号或直接发送消息）
 
