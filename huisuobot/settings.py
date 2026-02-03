@@ -162,7 +162,7 @@ DATABASES = {
         'PORT': env_config["DATABASE"]["PORT"],
 
         # 关键：保持连接 60 秒，自动重连
-        'CONN_MAX_AGE': 60,
+        'CONN_MAX_AGE': 0,
     }
 }
 
