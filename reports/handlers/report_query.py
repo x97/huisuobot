@@ -89,7 +89,8 @@ def send_report_page(update, context, reports, page, place, place_key):
 
 def report_query_handler(update: Update, context: CallbackContext):
     from places.services import get_all_place_names, find_place_by_name
-
+    print(">>> REPORT HANDLER TRIGGERED <<<")
+    print("查询报告")
     text = update.message.text.strip()
 
     if not text.startswith("报告#"):
@@ -152,7 +153,7 @@ def report_pagination_callback(update: Update, context: CallbackContext):
 def register_report_query_handlers(dp):
     # 只匹配以“报告#”开头的消息
     dp.add_handler(MessageHandler(
-        Filters.regex(r"^(报告\s*#|#\s*报告)\s*$") & Filters.chat_type.groups,
+        Filters.regex(r"^(报告\s*#\s*.+|#\s*报告\s*#\s*.+)$") & Filters.chat_type.groups,
         report_query_handler
     ))
 

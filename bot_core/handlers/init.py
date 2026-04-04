@@ -23,6 +23,10 @@ def register_handlers(dp):
     # dp.add_handler(MessageHandler(Filters.all, pre_process_user), group=-1)
     #返回主菜单
     register_back_to_main(dp)
+
+    #报告
+    register_report_handlers(dp)
+
     # 用户提交悬赏
     register_reward_submit_handlers(dp)
 
@@ -34,8 +38,6 @@ def register_handlers(dp):
     #机器人防拉保护
     register_group_guard(dp)
 
-    #报告
-    register_report_handlers(dp)
     # 兑换名片
     register_exchange_handlers(dp)
     # 管理员处理兑换名片申诉
