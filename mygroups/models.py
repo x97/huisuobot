@@ -26,3 +26,14 @@ class MyGroup(models.Model):
 
     def __str__(self):
         return f"MyGroup {self.group_chat_id}"
+
+
+    @classmethod
+    def ALLOWED_GROUP_IDS(cls):
+        all_ids = cls.get_all_ids()
+        result = []
+
+        result.extend(all_ids['group_ids'])
+        result.extend(all_ids['channel_ids'])
+        result.extend(all_ids['report_center_ids'])
+        return result

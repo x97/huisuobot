@@ -13,8 +13,9 @@ from telegram.ext import (
 from tgusers.services import update_or_create_user
 from common.keyboards import append_back_button
 from lottery.models import Lottery, Prize
-from lottery.services import send_lottery_to_group, add_lottery_draw_job
+from lottery.services import send_lottery_to_group
 from mygroups.services import load_mygroups_cache
+from lottery.tasks import add_lottery_draw_job
 
 
 # 状态

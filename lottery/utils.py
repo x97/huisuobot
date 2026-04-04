@@ -12,7 +12,7 @@ from telegram.ext import (
     ConversationHandler, CallbackQueryHandler
 )
 
-from mygroups.models import GroupInfo
+from mygroups.services import get_mygroups_cache
 from tgusers.models import TelegramUser
 from tgusers.services import update_or_create_user
 from common.utils import end_all_conversations
@@ -123,8 +123,17 @@ def handle_chat_link(update, context):
 
     # 解析 chat_id
     chat_id = get_chat_id_from_link(context, chat_link)
+    cache = get_mygroups_cache()
+    allowed_groups = set(cache["allowed_groups"])
+    allowed_channels = set(cache["allowed_channels"])
 
-    if not chat_id or chat_id not in GroupInfo.ALLOWED_GROUP_IDS():
+    # 判断是否允许
+    is_allowed = (
+         chat_id in allowed_groups or
+         chat_id in allowed_channels
+    )
+
+    if not is_allowed:
         update.message.reply_text(
             "/cancel 命令返回首页 \n"
             "❌链接有问题哦\n"

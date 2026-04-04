@@ -8,7 +8,6 @@ from django.utils import timezone
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 from telegram import Update
-from lottery.services.scheduler_service import get_scheduler
 
 from common.keyboards import append_back_button
 from lottery.models import Lottery
@@ -204,8 +203,9 @@ def confirm_cancel_lottery(update: Update, context: CallbackContext):
 # ============================
 # 执行取消抽奖
 # ============================
+from lottery.tasks import remove_lottery_draw_job   # 你刚写的函数
+
 def do_cancel_lottery(update: Update, context: CallbackContext):
-    scheduler = get_scheduler()
     query = update.callback_query
     query.answer()
 
@@ -222,11 +222,15 @@ def do_cancel_lottery(update: Update, context: CallbackContext):
             end_time__gt=timezone.now()
         )
 
-        job_id = f"lottery_draw_{lottery.id}"
-        if scheduler.get_job(job_id):
-            scheduler.remove_job(job_id)
+        # 1. 删除 DjangoJobStore 中的任务
+        remove_lottery_draw_job(lottery.id)
 
-        lottery.delete()
+        # 2. 标记为取消（推荐）
+        lottery.is_canceled = True
+        lottery.save(update_fields=["is_canceled"])
+
+        # 3. 或者你想直接删除记录也可以：
+        # lottery.delete()
 
         keyboard = [[InlineKeyboardButton("🔙 返回抽奖列表", callback_data="lottery:list:ongoing:1")]]
         query.edit_message_text(
@@ -238,6 +242,7 @@ def do_cancel_lottery(update: Update, context: CallbackContext):
         query.edit_message_text("❌ 取消失败：抽奖不存在或已结束。")
     except Exception as e:
         query.edit_message_text(f"❌ 取消失败：{e}")
+
 
 
 # ============================

@@ -1,4 +1,4 @@
-# tgpoker_bot/management/commands/send_telegram_msg.py
+# huisuobot/management/commands/send_telegram_msg.py
 import os
 import sys
 import json

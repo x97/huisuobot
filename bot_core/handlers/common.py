@@ -11,9 +11,11 @@ from bot_core.keyboards.main_menus import (
     user_main_menu,
 )
 
-def pre_process_user(update, context):
+async def pre_process_user(update, context):
     if update.effective_user:
-        update_or_create_user(update.effective_user)
+        await update_or_create_user(update.effective_user)
+    return False  # ⭐ 允许继续传递给后续 handler
+
 
 def back_to_main_common(update: Update, context: CallbackContext) -> None:
     """

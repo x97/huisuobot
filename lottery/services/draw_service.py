@@ -11,11 +11,12 @@ from lottery.services.notify_service import (
 
 
 def draw_lottery_and_notify(lottery_id):
-    """开奖 + 通知"""
+    """执行开奖（不负责判断是否重复执行，由 safe_draw 控制）"""
+
     try:
-        lottery = Lottery.objects.get(id=lottery_id, is_active=True, is_drawn=False)
+        lottery = Lottery.objects.get(id=lottery_id)
     except Lottery.DoesNotExist:
-        print(f"❌ 抽奖 {lottery_id} 不存在或已开奖")
+        print(f"❌ 抽奖 {lottery_id} 不存在")
         return
 
     participants = list(LotteryParticipant.objects.filter(lottery=lottery))
@@ -45,12 +46,11 @@ def draw_lottery_and_notify(lottery_id):
                 last = u.last_name or ""
                 username = u.username
 
-                # 拼接显示名
                 display_name = f"【{(first + ' ' + last).strip()}】"
                 if username:
                     display_name += f"@{username}"
                 else:
-                    display_name += f"(id:{u.user_id})"  # 没有 username 时用 id 兜底
+                    display_name += f"(id:{u.user_id})"
 
                 names.append(display_name)
 
@@ -63,16 +63,13 @@ def draw_lottery_and_notify(lottery_id):
             f"📝 兑奖说明：\n{lottery.description}"
         )
 
-    # 更新状态
+    # 更新状态（由 safe_draw 保证不会重复执行）
     lottery.is_drawn = True
     lottery.is_active = False
     lottery.result_message = result_message
     lottery.save()
 
-    # 群里更新
     update_group_after_draw(lottery, result_message)
-
-    # 管理员通知
     notify_admins(result_message)
 
     print(f"🎉 抽奖 {lottery.title} 已开奖")

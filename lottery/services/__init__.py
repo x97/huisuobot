@@ -1,3 +1,2 @@
-from .scheduler_service import add_lottery_draw_job
 from .notify_service import notify_user_prize, notify_user_prize_async, notify_admins, send_lottery_to_group
-from .scheduler_service import add_lottery_draw_job
+from .draw_service import draw_lottery_and_notify
