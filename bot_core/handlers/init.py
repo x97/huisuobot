@@ -20,7 +20,7 @@ from telegram.ext import MessageHandler, Filters
 
 def register_handlers(dp):
     # 全局用户更新（最优先）
-    dp.add_handler(MessageHandler(Filters.all, pre_process_user), group=-1)
+    # dp.add_handler(MessageHandler(Filters.all, pre_process_user), group=-1)
     #返回主菜单
     register_back_to_main(dp)
     # 用户提交悬赏
