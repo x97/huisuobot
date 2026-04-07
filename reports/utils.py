@@ -94,7 +94,7 @@ def send_to_report_center_and_group_async(report: Report):
                 parse_mode='HTML'
             )
             logger.info(
-                f"报告中心通知任务提交成功（report_id={report.id}, center_id={group_info.report_center_id}, task_id={task_id}）")
+                f"报告中心通知任务提交成功（report_id={report.id}, center_id={group_info.report_channel_id}, task_id={task_id}）")
         except Exception as e:
             logger.error(f"报告中心通知任务提交失败（report_id={report.id}）：{str(e)}")
 

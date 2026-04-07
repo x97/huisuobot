@@ -35,5 +35,5 @@ class MyGroup(models.Model):
 
         result.extend(all_ids['group_ids'])
         result.extend(all_ids['channel_ids'])
-        result.extend(all_ids['report_center_ids'])
+        result.extend(all_ids['report_channel_ids'])
         return result
