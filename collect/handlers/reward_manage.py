@@ -25,7 +25,7 @@ def admin_list_campaigns(update: Update, context: CallbackContext):
         update.callback_query.answer()
 
     # 只显示最近三个月 + 未结束
-    three_months_ago = timezone.now() - timedelta(days=90)
+    three_months_ago = timezone.now() - timedelta(days=180)
     qs = Campaign.objects.filter(
         is_active=True,
         created_at__gte=three_months_ago
