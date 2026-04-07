@@ -20,6 +20,14 @@ from tgusers.services import update_or_create_user
 from collect.models import Campaign, Submission, SubmissionPhoto
 from django.core.files.base import ContentFile
 
+def escape_html(text: str) -> str:
+    """手动 HTML 转义，兼容所有版本"""
+    return text.replace("&", "&amp;")\
+               .replace("<", "&lt;")\
+               .replace(">", "&gt;")\
+               .replace('"', "&quot;")\
+               .replace("'", "&#39;")
+
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +108,6 @@ def reward_submit_start_private(update: Update, context: CallbackContext):
         message.reply_text("该悬赏任务不存在或已失效。")
         return ConversationHandler.END
 
-    from telegram.helpers import escape_html
 
     template = (
         "<pre>"
