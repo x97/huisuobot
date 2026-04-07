@@ -21,7 +21,7 @@ from collect.models import Campaign, Submission, SubmissionPhoto
 from django.core.files.base import ContentFile
 
 
-def html_escape(text: str) -> str:
+def escape_html(text: str) -> str:
     """
     100% 兼容 Telegram HTML 格式
     自动处理：<br> → \n  + 标准HTML转义
