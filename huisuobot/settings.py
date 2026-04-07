@@ -40,10 +40,7 @@ INSTALLED_APPS = [
     'ingestion',
     'mall',
     'lottery',
-    'django_q',
     'storages',
-    'tgfunc_carousel',
-    'django_apscheduler',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -107,21 +104,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Q_CLUSTER 配置
-Q_CLUSTER = {
-    'name': 'shuilaoban', #项目名
-    'workers': 1,  # 工作进程数
-    'recycle': 500,  # 每个工作进程处理500个任务后重启
-    'timeout': 60,  # 任务超时时间
-    'compress': True,
-    'save_limit': 250,  # 保存最多250个任务结果
-    'queue_limit': 200,  # 队列最大任务数
-    'cpu_affinity': 1,
-    'label': 'Django Q',
-    "max_attempts": 2,  # 最多尝试一次，避免无限重发
-    # 使用 Django ORM 作为后端（无需 Redis）
-    'orm': 'default',
-}
+
 
 
 # Internationalization
@@ -141,6 +124,17 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/1"
+
+CELERY_TIMEZONE = "Asia/Shanghai"
+CELERY_ENABLE_UTC = False
+
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 60 * 5
+CELERY_TASK_SOFT_TIME_LIMIT = 60 * 4
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -199,3 +193,4 @@ elif STORAGE_MODE == "s3":
 TELEGRAM_BOT_TOKEN = env_config["TELEGRAM_BOT_TOKEN"]
 
 REPORT_DEFAULT_USER_ID = env_config.get("REPORT_DEFAULT_USER_ID", 1)
+

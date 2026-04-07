@@ -9,7 +9,6 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
-from django_q.tasks import fetch
 from telegram import Bot
 from telegram import Message
 from telegram.error import TelegramError

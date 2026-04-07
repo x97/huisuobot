@@ -100,25 +100,30 @@ def reward_submit_start_private(update: Update, context: CallbackContext):
         message.reply_text("该悬赏任务不存在或已失效。")
         return ConversationHandler.END
 
+    from telegram.helpers import escape_html
+
     template = (
-        "```text\n"
+        "<pre>"
         "【技师号码】: \n"
         "【出生年份】: \n"
         "【胸围大小】: \n"
         "【胸围信息】: \n"
         "【颜值信息】: \n"
         "【其他信息】: \n"
-        "```"
+        "</pre>"
     )
 
+    title = escape_html(campaign.title)
+    desc = escape_html(campaign.description)
+
     message.reply_text(
-        f"📢 你正在提交悬赏信息：\n\n"
-        f"🎯 标题：{campaign.title}\n"
-        f"📄 详情：{campaign.description}\n\n"
-        f"请按照以下模板填写并发送给我：\n\n"
-        f"{template}\n\n"
-        f"如需取消，请发送 /cancel",
-        parse_mode="Markdown"
+        f"📢 你正在提交悬赏信息：<br><br>"
+        f"🎯 <b>标题：</b>{title}<br>"
+        f"📄 <b>详情：</b>{desc}<br><br>"
+        f"请按照以下模板填写并发送给我：<br><br>"
+        f"{template}<br>"
+        f"如需取消，请发送 <code>/cancel</code>",
+        parse_mode="HTML"
     )
 
     return SUBMITTING_TEXT

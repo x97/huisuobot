@@ -10,11 +10,23 @@ from bot_core.keyboards.main_menus import (
     merchant_main_menu,
     user_main_menu,
 )
+import functools
+from asgiref.sync import sync_to_async
 
-async def pre_process_user(update, context):
-    if update.effective_user:
-        await update_or_create_user(update.effective_user)
-    return False  # ⭐ 允许继续传递给后续 handler
+
+
+def pre_process_user(func):
+    @functools.wraps(func)
+    def wrapper(update, context, *args, **kwargs):
+
+        tg_user = update.effective_user
+        if tg_user:
+            user = update_or_create_user(tg_user)
+            context.tuser = user
+
+        return func(update, context, *args, **kwargs)
+
+    return wrapper
 
 
 def back_to_main_common(update: Update, context: CallbackContext) -> None:

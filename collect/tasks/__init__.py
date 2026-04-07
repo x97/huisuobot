@@ -1,1 +1,1 @@
-from .campaign_links import list_campaign_links_task
+from .campaign_links import broadcast_campaigns_to_all_groups

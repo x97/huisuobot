@@ -9,7 +9,7 @@ from bot_core.keyboards.main_menus import (
     user_main_menu,
 )
 
-
+@pre_process_user
 def start_handler(update, context):
     tg_user = update.effective_user
     user = update_or_create_user(tg_user)

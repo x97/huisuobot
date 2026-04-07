@@ -16,11 +16,11 @@ from interactions.handlers import register_interaction_handlers
 from mall.handlers import register_all_mall_handers
 from lottery.handlers import register_all_lottery_handlers
 from telegram.ext import MessageHandler, Filters
-
+from .group_message import group_message_preprocessor
 
 def register_handlers(dp):
     # 全局用户更新（最优先）
-    dp.add_handler(MessageHandler(Filters.all, pre_process_user), group=-1)
+
     #返回主菜单
     register_back_to_main(dp)
 
@@ -85,3 +85,7 @@ def register_handlers(dp):
     #注册用户群聊发言处理
     register_user_activity(dp)
     # 用户发言监听 放在最后面
+
+    dp.add_handler(
+        MessageHandler(Filters.group, group_message_preprocessor),
+    )

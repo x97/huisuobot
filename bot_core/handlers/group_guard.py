@@ -77,8 +77,11 @@ def handle_bot_added(update, context):
 
     return True
 
+
+#处理群成员加入
+@pre_process_user
 def handle_other_members_added(update, context):
-    pre_process_user(update, context)
+    pass
 
 def handle_new_chat_members(update, context):
     """

@@ -21,7 +21,7 @@ class Command(BaseCommand):
 
         try:
             updater = create_bot(token)
-            leave_unallowed_groups_on_startup()
+            # leave_unallowed_groups_on_startup()
             updater.start_polling()
             self.stdout.write(self.style.SUCCESS("Bot is now running"))
             updater.idle()
