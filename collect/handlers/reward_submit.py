@@ -20,14 +20,10 @@ from tgusers.services import update_or_create_user
 from collect.models import Campaign, Submission, SubmissionPhoto
 from django.core.files.base import ContentFile
 
-def escape_html(text: str) -> str:
-    """手动 HTML 转义，兼容所有版本"""
-    return text.replace("&", "&amp;")\
-               .replace("<", "&lt;")\
-               .replace(">", "&gt;")\
-               .replace('"', "&quot;")\
-               .replace("'", "&#39;")
-
+try:
+    from telegram.helpers import escape_html
+except Exception:
+    from telegram.utils.helpers import escape as escape_html
 
 logger = logging.getLogger(__name__)
 
