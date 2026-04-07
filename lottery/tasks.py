@@ -39,7 +39,8 @@ def process_single_lottery(lottery_id):
         lottery = Lottery.objects.select_for_update().get(id=lottery_id)
 
         # 幂等性检查
-        if lottery.is_drawn or lottery.is_active:
+        #开奖或者无效
+        if lottery.is_drawn or lottery.is_active is False:
             return
 
         # 执行开奖
