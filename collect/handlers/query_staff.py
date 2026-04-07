@@ -225,7 +225,11 @@ def staff_submission_page(update: Update, context: CallbackContext):
 # 注册 handlers
 # ============================================================
 def register_query_staff_handlers(dp):
-    dp.add_handler(MessageHandler((Filters.regex(r"^查") | Filters.regex(r"#")) & Filters.chat_type.groups, handle_group_query))
+    # 查询：匹配 #dc#999 / #dc #999，但排除 #报告
+    dp.add_handler(MessageHandler(
+        Filters.regex(r"^#(?!报告)\s*\S+") & Filters.chat_type.groups,
+        handle_group_query
+    ))
     dp.add_handler(CallbackQueryHandler(staff_photos_view, pattern=r"^staff_photos:\d+:\d+$"))
     dp.add_handler(CallbackQueryHandler(staff_submissions_view, pattern=r"^staff_submissions:\d+:\d+$"))
     dp.add_handler(CallbackQueryHandler(staff_submission_page, pattern=r"^sub:page:\d+:\d+$"))
