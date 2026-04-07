@@ -21,7 +21,7 @@ def scan_and_draw_lottery():
     lotteries = Lottery.objects.filter(
         end_time__lte=now,
         is_drawn=False,
-        is_active=False
+        is_active=True
     )
 
     for lottery in lotteries:
