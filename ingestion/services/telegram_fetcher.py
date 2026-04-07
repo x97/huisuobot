@@ -24,6 +24,45 @@ def get_safe_delay(source: IngestionSource) -> float:
     except Exception:
         return 4
 
+async def safe_get_channel(client, source):
+    """
+    安全获取频道实体：
+    1. 优先用 username
+    2. 失败则用 -100 开头的 channel_id
+    """
+    entity = None
+
+    # ======================
+    # 第一步：尝试 username
+    # ======================
+    try:
+        username = source.channel_username
+        if username and username.strip():
+            if not username.startswith("@"):
+                username = f"@{username}"
+            entity = await client.get_entity(username)
+            print(f"✅ 通过用户名找到频道: {username}")
+            return entity
+    except Exception as e:
+        print(f"⚠️  用户名方式失败: {e}")
+
+    # ======================
+    # 第二步：降级用 ID（必须加 -100）
+    # ======================
+    try:
+        channel_id = source.channel_id
+        if str(channel_id).startswith("-100"):
+            telegram_id = channel_id
+        else:
+            telegram_id = int(f"-100{channel_id}")  # 关键！
+
+        entity = await client.get_entity(telegram_id)
+        print(f"✅ 通过ID找到频道: {telegram_id}")
+        return entity
+    except Exception as e:
+        print(f"❌ ID方式也失败: {e}")
+
+    return entity
 
 # ============================
 # 🔥 1. 抓取频道消息（增量）
@@ -56,12 +95,9 @@ async def fetch_channel_messages(
     count = 0
 
     # 获取频道实体
-    try:
-        entity = await client.get_entity(channel_id)
-        print("ENTITY:", entity)
-    except Exception as e:
-        print("❌ get_entity 错误：", e)
-        return []
+    entity  = await safe_get_channel(client, source)
+    if not entity:
+        return  []
 
     try:
         offset_id = 0  # ⭐ 从最新消息开始往前抓
