@@ -19,26 +19,20 @@ from common.keyboards import append_back_button
 from tgusers.services import update_or_create_user
 from collect.models import Campaign, Submission, SubmissionPhoto
 from django.core.files.base import ContentFile
+import html
 
 
-def escape_html(text: str) -> str:
-    if not text:
-        return ""
+def escape_htmlb(text: str) -> str:
+    """
+    使用 Python 标准库 html.escape
+    这是最推荐的方式
+    """
+    if not isinstance(text, str):
+        text = str(text)
 
-    # 1. 先把所有 br 标签全部替换成换行（Telegram 只认 \n）
-    text = text.replace("<br>", "\n")
-    text = text.replace("<br/>", "\n")
-    text = text.replace("<br />", "\n")
-    text = text.replace("</br>", "\n")
+    # quote=True 表示同时转义双引号和单引号
+    return html.escape(text, quote=True)
 
-    # 2. 再把所有 < > 全部转义，彻底杜绝 BadRequest
-    text = text.replace("&", "&amp;")
-    text = text.replace("<", "&lt;")
-    text = text.replace(">", "&gt;")
-    text = text.replace('"', "&quot;")
-    text = text.replace("'", "&#39;")
-
-    return text
 
 
 
