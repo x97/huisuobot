@@ -27,6 +27,7 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
+    'tscheduler',
     'tgusers',
     'mygroups',
     'collect',
