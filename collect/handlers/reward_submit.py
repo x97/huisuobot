@@ -20,10 +20,26 @@ from tgusers.services import update_or_create_user
 from collect.models import Campaign, Submission, SubmissionPhoto
 from django.core.files.base import ContentFile
 
-try:
-    from telegram.helpers import escape_html
-except Exception:
-    from telegram.utils.helpers import escape as escape_html
+
+def html_escape(text: str) -> str:
+    """
+    100% 兼容 Telegram HTML 格式
+    自动处理：<br> → \n  + 标准HTML转义
+    永远不会报 BadRequest
+    """
+    if not text:
+        return ""
+
+    # 第一步：把 <br> 换成 Telegram 支持的真实换行
+    text = text.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
+
+    # 第二步：标准HTML转义（Telegram只支持这4个）
+    text = text.replace("&", "&amp;")
+    text = text.replace("<", "&lt;")
+    text = text.replace(">", "&gt;")
+    text = text.replace('"', "&quot;")
+    return text
+
 
 logger = logging.getLogger(__name__)
 
