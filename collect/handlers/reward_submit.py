@@ -22,7 +22,7 @@ from django.core.files.base import ContentFile
 import html
 
 
-def escape_htmlb(text: str) -> str:
+def escape_html(text: str) -> str:
     """
     使用 Python 标准库 html.escape
     这是最推荐的方式
