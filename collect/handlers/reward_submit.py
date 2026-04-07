@@ -131,15 +131,14 @@ def reward_submit_start_private(update: Update, context: CallbackContext):
     desc = escape_html(campaign.description)
 
     message.reply_text(
-        f"📢 你正在提交悬赏信息：<br><br>"
-        f"🎯 <b>标题：</b>{title}<br>"
-        f"📄 <b>详情：</b>{desc}<br><br>"
-        f"请按照以下模板填写并发送给我：<br><br>"
-        f"{template}<br>"
+        f"📢 你正在提交悬赏信息：\n\n"
+        f"🎯 <b>标题：</b>{title}\n"
+        f"📄 <b>详情：</b>{desc}\n\n"
+        f"请按照以下模板填写并发送给我：\n\n"
+        f"{template}\n"
         f"如需取消，请发送 <code>/cancel</code>",
         parse_mode="HTML"
     )
-
     return SUBMITTING_TEXT
 
 
