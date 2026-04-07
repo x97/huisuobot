@@ -90,13 +90,25 @@ def send_report_page(update, context, reports, page, place, place_key):
 def report_query_handler(update: Update, context: CallbackContext):
     from places.services import get_all_place_names, find_place_by_name
     print(">>> REPORT HANDLER TRIGGERED <<<")
-    print("查询报告")
     text = update.message.text.strip()
 
-    if not text.startswith("报告#"):
+    # -----------------------
+    # 修复1：正确判断开头格式
+    # -----------------------
+    if not (text.startswith("报告") or text.startswith("#报告")):
+        print("❌ 不是报告格式")
         return
 
-    query_name = text.split("#", 1)[1].strip()
+    # -----------------------
+    # 修复2：正确提取 #xxx 内容（支持所有格式）
+    # -----------------------
+    import re
+    match = re.search(r"#\s*(\S+)", text)
+    if not match:
+        update.message.reply_text("格式不正确，请输入：报告#名称 或 #报告#名称")
+        return
+
+    query_name = match.group(1).strip()
 
     # 查找场所
     place = find_place_by_name(query_name)
@@ -104,7 +116,7 @@ def report_query_handler(update: Update, context: CallbackContext):
     if place:
         name_list = get_all_place_names(place)
         reports = query_reports_by_place_names(name_list)
-        place_key = place.name  # 用主名称作为 key
+        place_key = place.name
     else:
         reports = fallback_query_reports(query_name)
         place_key = query_name
@@ -114,7 +126,6 @@ def report_query_handler(update: Update, context: CallbackContext):
         return
 
     send_report_page(update, context, reports, page=1, place=place, place_key=place_key)
-
 
 # ============================
 # 6. 分页 Callback Handler
@@ -154,7 +165,7 @@ def register_report_query_handlers(dp):
     # 只匹配以“报告#”开头的消息
     # 报告：只匹配 #报告 开头，支持空格 + #
     dp.add_handler(MessageHandler(
-        Filters.regex(r"^#\s*报告\s*#\s*\S+") & Filters.chat_type.groups,
+        Filters.regex(r"^#?\s*报告\s*#\s*\S+") & Filters.chat_type.groups,
         report_query_handler
     ))
 
