@@ -227,7 +227,7 @@ def do_cancel_lottery(update: Update, context: CallbackContext):
 
         # 2. 标记为取消（推荐）
         lottery.is_canceled = True
-        lottery.save(update_fields=["is_canceled"])
+        lottery.save(update_fields=["is_active"])
 
         # 3. 或者你想直接删除记录也可以：
         # lottery.delete()
