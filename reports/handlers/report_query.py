@@ -92,23 +92,17 @@ def report_query_handler(update: Update, context: CallbackContext):
     print(">>> REPORT HANDLER TRIGGERED <<<")
     text = update.message.text.strip()
 
-    # -----------------------
-    # 修复1：正确判断开头格式
-    # -----------------------
+    # 匹配格式：报告 / #报告 开头
     if not (text.startswith("报告") or text.startswith("#报告")):
-        print("❌ 不是报告格式")
         return
 
-    # -----------------------
-    # 修复2：正确提取 #xxx 内容（支持所有格式）
-    # -----------------------
-    import re
-    match = re.search(r"#\s*(\S+)", text)
-    if not match:
+    # ✅ 正确提取最后一个 # 后面的内容（自动忽略空格）
+    parts = text.split("#")
+    if len(parts) >= 2:
+        query_name = parts[-1].strip()  # 永远取最后一个 # 后面的内容
+    else:
         update.message.reply_text("格式不正确，请输入：报告#名称 或 #报告#名称")
         return
-
-    query_name = match.group(1).strip()
 
     # 查找场所
     place = find_place_by_name(query_name)
