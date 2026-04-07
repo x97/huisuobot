@@ -16,7 +16,7 @@ BEAT_SCHEDULE = {
     # 2. 每分钟扫描开奖任务（方案一）
     # ===========================
     "scan-lottery-every-minute": {
-        "task": "yourapp.tasks.scan_and_draw_lottery",
+        "task": "lottery.tasks.scan_and_draw_lottery",
         "schedule": 60.0,  # 每 60 秒执行一次
     },
 

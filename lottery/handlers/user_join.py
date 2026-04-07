@@ -38,7 +38,7 @@ def handle_join_lottery(update, context):
 
     if user.points < required:
         query.message.reply_text(
-            f"❌ 积分不足，需要 {required} XP，你当前 {user.points} XP"
+            f"❌ 积分不足，需要 {required} 积分，你当前 {user.points} 积分"
         )
         return
 
@@ -55,7 +55,7 @@ def handle_join_lottery(update, context):
     msg = (
         f"🎉 参与成功！\n"
         f"你已参与 {total_participations} 次\n"
-        f"已扣除 {required} XP，剩余 {user.points} XP"
+        f"已扣除 {required} 积分，剩余 {user.points} 积分"
     )
 
     query.message.reply_text(msg)

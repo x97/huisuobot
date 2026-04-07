@@ -114,7 +114,7 @@ def send_lottery_to_group(context, lottery):
 🎉 **【群内积分抽奖】** 🎉
 
 📢 抽奖标题：{lottery.title}
-🎮 参与条件：{lottery.required_points} XP
+🎮 参与条件：{lottery.required_points} 积分
 ⏰ 开奖时间：{lottery.end_time.strftime('%Y-%m-%d %H:%M')}
 
 🎁 奖品列表：
@@ -122,13 +122,13 @@ def send_lottery_to_group(context, lottery):
 
 📝 兑奖说明：{lottery.description[:50]}...
 
-👉 点击下方按钮立即参与，消耗 {lottery.required_points} XP 即有机会中奖！
+👉 点击下方按钮立即参与，消耗 {lottery.required_points} 积分 即有机会中奖！
     """
 
     # 3. 构建“立即参与” Inline 按钮
     # 3. 构建“立即参与” Inline 按钮
     inline_keyboard = [
-        [InlineKeyboardButton(f"🎯 立即参与（{lottery.required_points} XP）", callback_data=f"lottery:join:{lottery.id}")]
+        [InlineKeyboardButton(f"🎯 立即参与（{lottery.required_points} 积分）", callback_data=f"lottery:join:{lottery.id}")]
     ]
     reply_markup = InlineKeyboardMarkup(inline_keyboard)
 
