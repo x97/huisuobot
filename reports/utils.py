@@ -24,6 +24,26 @@ logger = logging.getLogger(__name__)
 # 初始化 Bot 实例
 bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
 
+import re
+
+def extract_tg_username(url: str) -> str:
+    """
+    从 Telegram 链接中提取用户名
+    支持格式：
+    - https://t.me/username
+    - http://t.me/username
+    - t.me/username
+    - https://t.me/username/（末尾斜杠）
+    - 带查询参数或锚点，如 https://t.me/username?foo=bar
+    """
+    # 匹配 t.me/ 之后，直到 / 或 ? 或 # 或字符串结束的用户名（允许字母、数字、下划线）
+    pattern = r"t\.me/([a-zA-Z0-9_]+)"
+    match = re.search(pattern, url)
+    if match:
+        return match.group(1)
+    else:
+        raise ValueError(f"无法从 URL 中提取用户名: {url}")
+
 
 def send_broadcast_to_admins(
         text: str,
@@ -69,7 +89,7 @@ def send_to_report_center_and_group_async(report: Report):
         logger.warning(f"报告 {report.id} 内容中未找到有效群组链接：{content[:100]}...")
         return
 
-    group_username = match.group(1)
+    group_username = extract_tg_username(match.group(1))
 
     # 查询群组信息
     try:
