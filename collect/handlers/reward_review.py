@@ -338,6 +338,7 @@ def admin_approve(update: Update, context: CallbackContext):
 from interactions.utils import render_submission
 from .query_staff import build_staff_submission_keyboard
 
+
 def send_submission_comment_to_channel(sub, staff, bot):
     try:
         notifications = sub.campaign.notifications.all()
@@ -348,17 +349,20 @@ def send_submission_comment_to_channel(sub, staff, bot):
             staff=staff,
             page=1,
             total_submissions=1,
-            user_id=None
+            user=None
         )
 
         for notify in notifications:
+            # 拿到讨论组
             group = MyGroup.objects.filter(notify_channel_id=notify.notify_channel_id).first()
             if not group or not group.notify_discuss_group_id:
                 continue
 
             discuss_group_id = group.notify_discuss_group_id
 
-            # ✅ 使用你模型正确的字段
+            # --------------------------
+            # ✅ 旧版 bot 兼容写法
+            # --------------------------
             bot.send_message(
                 chat_id=discuss_group_id,
                 text=text,
@@ -366,16 +370,12 @@ def send_submission_comment_to_channel(sub, staff, bot):
                 parse_mode="HTML",
                 disable_web_page_preview=True,
 
-                # 官方正确评论方式
-                reply_parameters={
-                    "chat_id": notify.notify_channel_id,
-                    "message_id": notify.message_id,
-                }
+                # 🔥 旧版只支持这个
+                reply_to_message_id=notify.message_id
             )
 
     except Exception as e:
         logger.warning(f"自动评论悬赏失败：{str(e)}")
-
 
 
 # ============================
