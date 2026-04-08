@@ -58,8 +58,8 @@ def admin_input_place(update: Update, context: CallbackContext):
     if name.lower() in ["0", "全平台", "全局", "不限场所"]:
         # 不设置场所 = 全平台
         context.user_data["reward_place_id"] = None  # 👈 核心
-        update.message.reply_text("已选择：全平台悬赏\n请输入要征集的员工昵称：\n输入 /cancel 取消当前操作")
-        return WAITING_NICKNAME
+        update.message.reply_text("已选择：全平台悬赏\n请输入悬赏标题：\n输入 /cancel 取消当前操作")
+        return WAITING_PLACE
 
     # 原来逻辑：查找场所
     place = find_place_by_name(name)
