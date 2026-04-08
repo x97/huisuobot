@@ -261,6 +261,11 @@ def admin_review_info(update: Update, context: CallbackContext):
 # ============================
 # 🔥 信息审核通过
 # ============================
+# ============================
+# 🔥 信息审核通过（已改造：支持 place_name + 自动查找场所）
+# ============================
+from places.services import find_place_by_name  # 请确保顶部已导入
+
 def admin_approve(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
@@ -268,16 +273,37 @@ def admin_approve(update: Update, context: CallbackContext):
     sub_id = int(query.data.split(":")[-1])
     sub = Submission.objects.get(id=sub_id)
 
-    # 创建或获取 Staff
+    # ========================
+    # ✅ 新逻辑：通过用户提交的 place_name 查询场所
+    # ========================
+    place_name = sub.place_name
+    place = find_place_by_name(place_name)
+
+    # ========================
+    # ✅ 场所不存在 → 提示并拒绝通过
+    # ========================
+    if not place:
+        safe_edit(
+            query,
+            f"❌ 无法通过审核\n\n"
+            f"提交的场所名称：{place_name}\n"
+            f"⚠️ 系统中不存在该场所，请先创建场所后再审核通过！",
+            append_back_button(None)
+        )
+        return ConversationHandler.END
+
+    # ========================
+    # ✅ 场所存在 → 继续创建/关联 Staff
+    # ========================
     staff = Staff.objects.filter(
-        place=sub.campaign.place,
+        place=place,  # 这里改为查询到的 place
         nickname=sub.nickname,
         is_active=True
     ).first()
 
     if not staff:
         staff = Staff.objects.create(
-            place=sub.campaign.place,
+            place=place,
             nickname=sub.nickname,
             is_active=True
         )

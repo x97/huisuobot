@@ -20,6 +20,7 @@ from common.keyboards import append_back_button
 from collect.models import Campaign, CampaignNotification
 from places.models import Place
 from mygroups.models import MyGroup
+from places.services import find_place_by_name
 from mygroups.services import get_mygroups_cache
 
 logger = logging.getLogger(__name__)
@@ -39,36 +40,41 @@ def admin_start_publish(update: Update, context: CallbackContext):
     if update.callback_query:
         q = update.callback_query
         q.answer()
-        q.edit_message_text("请输入要悬赏的场所名称：\n输入 /cancel 取消当前操作")
+        # 👉 这里改提示文字，支持全平台
+        q.edit_message_text("请输入要悬赏的场所名称：\n输入 0 或 全平台 = 全平台悬赏\n输入 /cancel 取消当前操作")
     else:
-        update.message.reply_text("请输入要悬赏的场所名称：\n输入 /cancel 取消当前操作")
+        update.message.reply_text("请输入要悬赏的场所名称：\n输入 0 或 全平台 = 全平台悬赏\n输入 /cancel 取消当前操作")
 
     return WAITING_PLACE
 
 
-
 def admin_input_place(update: Update, context: CallbackContext):
-    """管理员输入场所名"""
+    """管理员输入场所名 → 现在支持 全平台（不选场所）"""
     name = update.message.text.strip()
-    qs = Place.objects.filter(name__icontains=name)
-    if not qs.exists():
+
+    # ========================
+    # ✅ 关键：支持全平台悬赏
+    # ========================
+    if name.lower() in ["0", "全平台", "全局", "不限场所"]:
+        # 不设置场所 = 全平台
+        context.user_data["reward_place_id"] = None  # 👈 核心
+        update.message.reply_text("已选择：全平台悬赏\n请输入要征集的员工昵称：\n输入 /cancel 取消当前操作")
+        return WAITING_NICKNAME
+
+    # 原来逻辑：查找场所
+    place = find_place_by_name(name)
+    if not place:
         update.message.reply_text("未找到场所，请重新输入：\n输入 /cancel 取消当前操作")
         return WAITING_PLACE
 
-    place = qs.first()
     context.user_data["reward_place_id"] = place.id
 
-    update.message.reply_text(f"已选择场所：{place.name}\n请输入要征集的员工昵称：\n输入 /cancel 取消当前操作")
-    return WAITING_NICKNAME
-
-
-def admin_input_nickname(update: Update, context: CallbackContext):
-    """管理员输入员工昵称"""
-    nickname = update.message.text.strip()
-    context.user_data["reward_nickname"] = nickname
-
+    #update.message.reply_text(f"已选择场所：{place.name}\n请输入要征集的员工昵称：\n输入 /cancel 取消当前操作")
     update.message.reply_text("请输入悬赏标题：\n输入 /cancel 取消当前操作")
+
     return WAITING_TITLE
+
+
 
 
 def admin_input_title(update: Update, context: CallbackContext):
@@ -150,21 +156,30 @@ def admin_input_channel(update: Update, context: CallbackContext):
 
 
 def show_reward_summary(update: Update, context: CallbackContext):
-    place = Place.objects.get(id=context.user_data["reward_place_id"])
+    # ========== 核心改动：兼容 场所为 None（全平台） ==========
+    place_id = context.user_data.get("reward_place_id")  # 用 get 不会报错
+    place = None
+    place_text = "【全平台】不限场所"  # 默认全平台
+
+    if place_id:
+        try:
+            place = Place.objects.get(id=place_id)
+            place_text = f"📍场所：{place.name}"
+        except Place.DoesNotExist:
+            place_text = "【全平台】不限场所"
+
     channels = context.user_data["reward_channels"]
 
     summary = (
-        "请确认发布悬赏：\n\n"
-        f"📍场所：{place.name}\n"
-        f"👩征集员工：{context.user_data['reward_nickname']}\n"
-        f"📌标题：{context.user_data['reward_title']}\n"
-        f"📄描述：{context.user_data['reward_description']}\n"
-        f"💰奖励金币：{context.user_data['reward_coins']}\n\n"
-        f"📢发送频道数量：{len(channels)}\n"
-        "频道 ID 列表：\n" + "\n".join([str(c) for c in channels]) + "\n\n"
-        "确认发布吗？"
+            "请确认发布悬赏：\n\n"
+            f"{place_text}\n"  # 👈 这里自动切换 场所 / 全平台
+            f"📌标题：{context.user_data['reward_title']}\n"
+            f"📄描述：{context.user_data['reward_description']}\n"
+            f"💰奖励金币：{context.user_data['reward_coins']}\n\n"
+            f"📢发送频道数量：{len(channels)}\n"
+            "频道 ID 列表：\n" + "\n".join([str(c) for c in channels]) + "\n\n"
+                                                                        "确认发布吗？"
     )
-
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("✅ 确认发布", callback_data=make_cb(PREFIX, "confirm")),
@@ -180,12 +195,20 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    place = Place.objects.get(id=context.user_data["reward_place_id"])
+    # ========================
+    # ✅ 核心改动：兼容场所为空（全平台）
+    # ========================
+    place_id = context.user_data.get("reward_place_id")
+    place = None
+    if place_id:
+        place = Place.objects.get(id=place_id)
+
     channels = context.user_data["reward_channels"]
 
+    # 创建悬赏（place 可以为 None）
     campaign = Campaign.objects.create(
         title=context.user_data["reward_title"],
-        place=place,
+        place=place,  # 这里可以是 None
         description=context.user_data["reward_description"],
         reward_coins=context.user_data["reward_coins"],
         is_active=True,
@@ -194,11 +217,24 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
     bot_username = context.bot.username
     deep_link = f"https://t.me/{bot_username}?start=reward_{campaign.id}"
 
+    # ========================
+    # ✅ 智能拼接文本：场所存在/不存在 自动显示
+    # ========================
+    if place:
+        place_text = (
+            f"💎 会所名称：{place.name}\n"
+            f"📌 所在位置：{place.district}\n"
+        )
+    else:
+        place_text = (
+            f"💎 会所名称：【全平台不限场所】\n"
+            f"📌 所在位置：全平台通用\n"
+        )
+
     text = (
         f"📢【悬赏征集】-- {campaign.title}\n\n"
-        f"💎 会所名称：{place.name}\n"
-        f"📌 所在位置：{place.district}\n"
-        f"👩 技师号码：{context.user_data['reward_nickname']}\n\n"
+        f"{place_text}"  # 👈 自动切换
+        f"👩 征集内容：{context.user_data['reward_nickname']}\n\n"
         f"📄 征集详情: {campaign.description}\n\n"
         f"💰 奖励金币：{campaign.reward_coins}\n\n"
         "👇 点击下方按钮私聊机器人提交悬赏信息\n"
@@ -210,20 +246,23 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
 
     # 发送到多个频道
     for channel_id in channels:
-        msg = query.bot.send_message(
-            chat_id=channel_id,
-            text=text,
-            reply_markup=keyboard
-        )
+        try:
+            msg = query.bot.send_message(
+                chat_id=channel_id,
+                text=text,
+                reply_markup=keyboard
+            )
 
-        CampaignNotification.objects.create(
-            campaign=campaign,
-            mygroup_id=None,
-            notify_channel_id=channel_id,
-            message_id=msg.message_id,
-        )
+            CampaignNotification.objects.create(
+                campaign=campaign,
+                mygroup_id=None,
+                notify_channel_id=channel_id,
+                message_id=msg.message_id,
+            )
+        except Exception as e:
+            print(f"发送到频道 {channel_id} 失败：{e}")
 
-    query.edit_message_text("悬赏已发布成功！", reply_markup=append_back_button(None))
+    query.edit_message_text("✅ 悬赏已发布成功！", reply_markup=append_back_button(None))
     return ConversationHandler.END
 
 
@@ -258,9 +297,6 @@ def get_admin_publish_handler():
         states={
             WAITING_PLACE: [
                 MessageHandler(only_text, admin_input_place),
-            ],
-            WAITING_NICKNAME: [
-                MessageHandler(only_text, admin_input_nickname),
             ],
             WAITING_TITLE: [
                 MessageHandler(only_text, admin_input_title),

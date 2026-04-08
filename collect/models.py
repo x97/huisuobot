@@ -9,7 +9,15 @@ from places.models import Place
 
 class Campaign(models.Model):
     title = models.CharField("悬赏标题", max_length=200)
-    place = models.ForeignKey(Place, on_delete=models.CASCADE, related_name="campaigns")
+    # ✅ 核心改动：允许为空 = 支持全平台悬赏
+    place = models.ForeignKey(
+        Place,
+        on_delete=models.CASCADE,
+        related_name="campaigns",
+        null=True,  # 数据库允许空
+        blank=True, # 后台可选不填
+        verbose_name="指定场所（不选则为全平台悬赏）"
+    )
     description = models.TextField("悬赏描述", blank=True)
     reward_coins = models.PositiveIntegerField("奖励金币", default=0)
     max_submissions = models.PositiveIntegerField("最大提交数", null=True, blank=True)
@@ -37,6 +45,14 @@ class Submission(models.Model):
     reporter = models.ForeignKey("tgusers.TelegramUser", on_delete=models.SET_NULL, null=True, blank=True)
 
     # 用户提交的详细信息（不进入 Staff）
+    # ✅ 提交时保存的场所名称（纯文本，不受数据库限制）
+    place_name = models.CharField(
+        "提交的场所名称",
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text="用户提交的场所名，无需提前存在"
+    )
     nickname = models.CharField("技师号码", max_length=200)
     birth_year = models.CharField("出生年份", null=True, blank=True, max_length=50)
     bust_size = models.CharField("胸围大小", max_length=50, blank=True)

@@ -23,34 +23,21 @@ import html
 
 
 def escape_html(text: str) -> str:
-    """
-    使用 Python 标准库 html.escape
-    这是最推荐的方式
-    """
     if not isinstance(text, str):
         text = str(text)
-
-    # quote=True 表示同时转义双引号和单引号
     return html.escape(text, quote=True)
-
-
 
 
 logger = logging.getLogger(__name__)
 
 REWARD_PREFIX = "reward"
 
-# ============================
-# 🔥 ConversationHandler 状态
-# ============================
 SUBMITTING_TEXT = 1
 SUBMITTING_PHOTOS = 2
 CONFIRMING = 3
 
-# ============================
-# 🔥 模板字段映射
-# ============================
 TEMPLATE_FIELDS = {
+    "场所名称": "place_name",
     "技师号码": "nickname",
     "出生年份": "birth_year",
     "胸围大小": "bust_size",
@@ -58,6 +45,7 @@ TEMPLATE_FIELDS = {
     "颜值信息": "attractiveness",
     "其他信息": "extra_info",
 }
+
 
 # ============================
 # 🔥 用户点击“📝 我要提交”
@@ -73,17 +61,47 @@ def reward_submit_start(update: Update, context: CallbackContext):
     campaign_id = int(raw_id)
     context.user_data["reward_submit_campaign_id"] = campaign_id
 
-    template = (
-        "请按照以下格式填写悬赏信息：\n\n"
-        "【技师号码】: \n"
-        "【出生年份】: \n"
-        "【胸围大小】: \n"
-        "【胸围信息】: \n"
-        "【颜值信息】: \n"
-        "【其他信息】: \n\n"
-        "请直接复制以上模板并填写后发送给我。\n\n"
-        "如需取消，请发送 /cancel"
-    )
+    # ========================
+    # ✅ 自动加载悬赏，判断场所
+    # ========================
+    try:
+        campaign = Campaign.objects.get(id=campaign_id)
+    except Campaign.DoesNotExist:
+        query.message.reply_text("该悬赏任务不存在或已失效。")
+        return ConversationHandler.END
+
+    # ========================
+    # ✅ 智能模板：场所自动填充
+    # ========================
+    if campaign.place:
+        place_name = campaign.place.name
+        context.user_data["auto_place_name"] = place_name
+        template = (
+            "请按照以下格式填写悬赏信息：\n\n"
+            f"【场所名称】: {place_name}\n"
+            "【技师号码】: \n"
+            "【出生年份】: \n"
+            "【胸围大小】: \n"
+            "【胸围信息】: \n"
+            "【颜值信息】: \n"
+            "【其他信息】: \n\n"
+            "请直接复制以上模板并填写后发送给我。\n\n"
+            "如需取消，请发送 /cancel"
+        )
+    else:
+        context.user_data["auto_place_name"] = None
+        template = (
+            "请按照以下格式填写悬赏信息：\n\n"
+            "【场所名称】: \n"
+            "【技师号码】: \n"
+            "【出生年份】: \n"
+            "【胸围大小】: \n"
+            "【胸围信息】: \n"
+            "【颜值信息】: \n"
+            "【其他信息】: \n\n"
+            "请直接复制以上模板并填写后发送给我。\n\n"
+            "如需取消，请发送 /cancel"
+        )
 
     query.message.reply_text(template)
     return SUBMITTING_TEXT
@@ -115,17 +133,36 @@ def reward_submit_start_private(update: Update, context: CallbackContext):
         message.reply_text("该悬赏任务不存在或已失效。")
         return ConversationHandler.END
 
-
-    template = (
-        "<pre>"
-        "【技师号码】: \n"
-        "【出生年份】: \n"
-        "【胸围大小】: \n"
-        "【胸围信息】: \n"
-        "【颜值信息】: \n"
-        "【其他信息】: \n"
-        "</pre>"
-    )
+    # ========================
+    # ✅ 自动判断场所并填充模板
+    # ========================
+    if campaign.place:
+        place_name = campaign.place.name
+        context.user_data["auto_place_name"] = place_name
+        template = (
+            "<pre>"
+            f"【场所名称】: {place_name}\n"
+            "【技师号码】: \n"
+            "【出生年份】: \n"
+            "【胸围大小】: \n"
+            "【胸围信息】: \n"
+            "【颜值信息】: \n"
+            "【其他信息】: \n"
+            "</pre>"
+        )
+    else:
+        context.user_data["auto_place_name"] = None
+        template = (
+            "<pre>"
+            "【场所名称】: \n"
+            "【技师号码】: \n"
+            "【出生年份】: \n"
+            "【胸围大小】: \n"
+            "【胸围信息】: \n"
+            "【颜值信息】: \n"
+            "【其他信息】: \n"
+            "</pre>"
+        )
 
     title = escape_html(campaign.title)
     desc = escape_html(campaign.description)
@@ -160,7 +197,6 @@ def reward_submit_cancel(update: Update, context: CallbackContext):
 # ============================
 # 🔥 用户填写模板 → 解析并保存
 # ============================
-
 def reward_submit_receive_text(update: Update, context: CallbackContext):
     if not update.message or not update.message.text:
         return SUBMITTING_TEXT
@@ -184,7 +220,13 @@ def reward_submit_receive_text(update: Update, context: CallbackContext):
         match = re.search(pattern, text)
         parsed[field] = match.group(1).strip() if match else ""
 
-    # 这里只保存草稿，不落库
+    # ========================
+    # ✅ 强制覆盖场所名（防止用户篡改）
+    # ========================
+    auto_place_name = context.user_data.get("auto_place_name")
+    if auto_place_name:
+        parsed["place_name"] = auto_place_name
+
     context.user_data["reward_draft"] = {
         "campaign_id": campaign_id,
         "parsed": parsed,
@@ -207,7 +249,6 @@ def reward_submit_receive_text(update: Update, context: CallbackContext):
 # ============================
 # 🔥 用户上传照片
 # ============================
-
 def reward_submit_receive_photo(update: Update, context: CallbackContext):
     draft = context.user_data.get("reward_draft")
     if not draft:
@@ -224,7 +265,6 @@ def reward_submit_receive_photo(update: Update, context: CallbackContext):
     return SUBMITTING_PHOTOS
 
 
-
 # ============================
 # 🔥 用户完成提交（/done）
 # ============================
@@ -235,7 +275,6 @@ def reward_submit_skip_photos(update: Update, context: CallbackContext):
 
 
 def reward_submit_done(update: Update, context: CallbackContext):
-    # 这里来自 /done 命令
     return _show_preview(update.message, context)
 
 
@@ -250,6 +289,7 @@ def _show_preview(message, context: CallbackContext):
 
     preview_text = (
         "请确认以下内容是否正确：\n\n"
+        f"【场所名称】{parsed['place_name']}\n"
         f"【技师号码】{parsed['nickname']}\n"
         f"【出生年份】{parsed['birth_year']}\n"
         f"【胸围大小】{parsed['bust_size']}\n"
@@ -282,10 +322,10 @@ def reward_submit_confirm(update: Update, context: CallbackContext):
     tg_user = update_or_create_user(query.from_user)
     parsed = draft["parsed"]
 
-    # 1) 创建 Submission
     submission = Submission.objects.create(
         campaign=campaign,
         reporter=tg_user,
+        place_name=parsed["place_name"],
         nickname=parsed["nickname"],
         birth_year=parsed["birth_year"],
         bust_size=parsed["bust_size"],
@@ -295,7 +335,6 @@ def reward_submit_confirm(update: Update, context: CallbackContext):
         status="pending",
     )
 
-    # 2) 保存图片
     for file_id in draft["photo_file_ids"]:
         tg_file = context.bot.get_file(file_id)
         file_bytes = tg_file.download_as_bytearray()
@@ -304,16 +343,13 @@ def reward_submit_confirm(update: Update, context: CallbackContext):
             image=ContentFile(file_bytes, name=f"{tg_file.file_id}.jpg")
         )
 
-    # 3) 清理上下文
     context.user_data.pop("reward_draft", None)
     context.user_data.pop("reward_submit_campaign_id", None)
 
-    # 4) 更新频道按钮
     try:
         notify = campaign.notifications.first()
         if notify:
             total = Submission.objects.filter(campaign=campaign).count()
-
             bot_username = context.bot.username
             deep_link = f"https://t.me/{bot_username}?start=reward_{campaign.id}"
 
@@ -334,7 +370,6 @@ def reward_submit_confirm(update: Update, context: CallbackContext):
     except Exception as e:
         logger.error(f"更新频道按钮失败: {e}")
 
-    # 5) 提示用户
     query.edit_message_text(
         "✅ 已收到你的提交，等待管理员审核。",
         reply_markup=append_back_button(None)
@@ -355,10 +390,9 @@ def reward_submit_restart(update: Update, context: CallbackContext):
 
 
 # ============================
-# 🔥 注册 handlers（ConversationHandler）
+# 🔥 注册 handlers
 # ============================
 def register_reward_submit_handlers(dp):
-
     conv = ConversationHandler(
         entry_points=[
             MessageHandler(Filters.regex(r"^/start reward_\d+$"), reward_submit_start_private),
@@ -367,7 +401,6 @@ def register_reward_submit_handlers(dp):
 
         states={
             SUBMITTING_TEXT: [
-                # 避免 /cancel 被当成普通文本
                 MessageHandler(Filters.text & ~Filters.regex(r"^/cancel"), reward_submit_receive_text),
             ],
 
@@ -389,8 +422,7 @@ def register_reward_submit_handlers(dp):
 
         per_user=True,
         per_chat=True,
-        allow_reentry=True,   # ⭐ 必须加
+        allow_reentry=True,
     )
 
     dp.add_handler(conv)
-
