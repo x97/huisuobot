@@ -268,6 +268,9 @@ def admin_review_info(update: Update, context: CallbackContext):
 # ============================
 from places.services import find_place_by_name  # 请确保顶部已导入
 
+# ============================
+# 🔥 审核通过 → 自动评论：文字+照片+完整按钮
+# ============================
 def admin_approve(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
@@ -275,15 +278,10 @@ def admin_approve(update: Update, context: CallbackContext):
     sub_id = int(query.data.split(":")[-1])
     sub = Submission.objects.get(id=sub_id)
 
-    # ========================
-    # ✅ 新逻辑：通过用户提交的 place_name 查询场所
-    # ========================
+    # 1. 查询场所
     place_name = sub.place_name
     place = find_place_by_name(place_name)
 
-    # ========================
-    # ✅ 场所不存在 → 提示并拒绝通过
-    # ========================
     if not place:
         safe_edit(
             query,
@@ -294,11 +292,9 @@ def admin_approve(update: Update, context: CallbackContext):
         )
         return ConversationHandler.END
 
-    # ========================
-    # ✅ 场所存在 → 继续创建/关联 Staff
-    # ========================
+    # 2. 关联/创建 Staff
     staff = Staff.objects.filter(
-        place=place,  # 这里改为查询到的 place
+        place=place,
         nickname=sub.nickname,
         is_active=True
     ).first()
@@ -310,6 +306,7 @@ def admin_approve(update: Update, context: CallbackContext):
             is_active=True
         )
 
+    # 3. 保存审核
     sub.status = "approved"
     sub.staff = staff
     sub.reviewed_at = timezone.now()
@@ -320,14 +317,66 @@ def admin_approve(update: Update, context: CallbackContext):
     reporter.points += sub.campaign.reward_coins
     reporter.save(update_fields=["points"])
 
+    # 4. 发送频道评论（拆分出去的单独函数）
+    send_submission_comment_to_channel(sub, staff, context.bot)
+
+    # 5. 回复管理员
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔄 继续审核", callback_data="reward_review:list")]
     ])
     keyboard = append_back_button(keyboard)
 
-    safe_edit(query, "🎉 信息审核通过，金币已发放。", keyboard)
+    safe_edit(query, "🎉 审核通过！已自动发布到悬赏频道评论区。", keyboard)
 
     return ConversationHandler.END
+
+
+# ============================
+# ✉️ 单独拆分：频道评论发送函数
+# ============================
+from interactions.utils import render_submission
+from .query_staff import build_staff_submission_keyboard
+
+def send_submission_comment_to_channel(sub, staff, bot):
+    try:
+        notifications = sub.campaign.notifications.all()
+        text = render_submission(sub)
+
+        keyboard = build_staff_submission_keyboard(
+            submission=sub,
+            staff=staff,
+            page=1,
+            total_submissions=1,
+            user_id=None
+        )
+
+        photos = list(sub.photos.all())
+
+        for notify in notifications:
+            chat_id = notify.notify_channel_id
+            reply_msg_id = notify.message_id
+
+            if photos:
+                bot.send_photo(
+                    chat_id=chat_id,
+                    photo=photos[0].image,
+                    caption=text,
+                    reply_to_message_id=reply_msg_id,
+                    reply_markup=keyboard
+                )
+            else:
+                bot.send_message(
+                    chat_id=chat_id,
+                    text=text,
+                    reply_to_message_id=reply_msg_id,
+                    reply_markup=keyboard,
+                    parse_mode="HTML",
+                    disable_web_page_preview=True
+                )
+
+    except Exception as e:
+        logger.warning(f"自动评论悬赏失败：{str(e)}")
+
 
 
 # ============================

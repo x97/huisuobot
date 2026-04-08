@@ -159,14 +159,14 @@ def show_reward_summary(update: Update, context: CallbackContext):
     # ========== 核心改动：兼容 场所为 None（全平台） ==========
     place_id = context.user_data.get("reward_place_id")  # 用 get 不会报错
     place = None
-    place_text = "【全平台】不限场所"  # 默认全平台
+    place_text = "【全市】不限场所"  # 默认全平台
 
     if place_id:
         try:
             place = Place.objects.get(id=place_id)
             place_text = f"📍场所：{place.name}"
         except Place.DoesNotExist:
-            place_text = "【全平台】不限场所"
+            place_text = "【全市】不限场所"
 
     channels = context.user_data["reward_channels"]
 
@@ -222,20 +222,20 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
     # ========================
     if place:
         place_text = (
-            f"💎 会所名称：{place.name}\n"
-            f"📌 所在位置：{place.district}\n"
+            f"💎 【会所名称】：{place.name}\n"
+            f"📌 【所在位置】：{place.district}\n"
         )
     else:
         place_text = (
-            f"💎 会所名称：【全平台不限场所】\n"
-            f"📌 所在位置：全平台通用\n"
+            f"💎 【会所名称】：全平台不限场所\n"
+            f"📌 【所在位置】：全平台通用\n"
         )
 
     text = (
-        f"📢【悬赏征集】-- {campaign.title}\n\n"
+        f"📢【悬赏征集-- {campaign.title}】\n\n"
         f"{place_text}"  # 👈 自动切换
-        f"💰 奖励金币：{campaign.reward_coins}\n\n"
-        f"📄 征集详情: \n{campaign.description}\n\n"
+        f"💰 【奖励金币】：{campaign.reward_coins}\n\n"
+        f"📄 【征集详情】: \n{campaign.description}\n\n"
 
         "👇 点击下方按钮私聊机器人提交悬赏信息\n"
     )
