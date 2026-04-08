@@ -344,33 +344,29 @@ def send_submission_comment_to_channel(sub, staff, bot):
         notifications = sub.campaign.notifications.all()
         text = render_submission(sub)
 
+        # ✅ 修复参数名：user_id=None
         keyboard = build_staff_submission_keyboard(
             submission=sub,
             staff=staff,
             page=1,
             total_submissions=1,
-            user=None
+            user_id=None  # 这里改对！
         )
 
         for notify in notifications:
-            # 拿到讨论组
             group = MyGroup.objects.filter(notify_channel_id=notify.notify_channel_id).first()
             if not group or not group.notify_discuss_group_id:
                 continue
 
             discuss_group_id = group.notify_discuss_group_id
 
-            # --------------------------
-            # ✅ 旧版 bot 兼容写法
-            # --------------------------
+            # ✅ 旧版兼容，无错误
             bot.send_message(
                 chat_id=discuss_group_id,
                 text=text,
                 reply_markup=keyboard,
                 parse_mode="HTML",
                 disable_web_page_preview=True,
-
-                # 🔥 旧版只支持这个
                 reply_to_message_id=notify.message_id
             )
 
