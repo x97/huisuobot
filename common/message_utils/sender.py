@@ -55,6 +55,18 @@ def send_telegram_message_sync(
         logger.error(f"发送消息失败: {e}")
         return None
 
+def delete_telegram_message_sync(chat_id: int | str, message_id: int):
+    """同步删除 Telegram 消息"""
+    try:
+        token = settings.TELEGRAM_BOT_TOKEN
+        url = f"https://api.telegram.org/bot{token}/deleteMessage"
+        requests.post(url, json={
+            "chat_id": chat_id,
+            "message_id": message_id
+        }, timeout=5)
+    except Exception:
+        pass
+
 
 # ========================
 # 你的原有 celery 异步任务（调用同步函数）

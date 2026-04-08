@@ -1,9 +1,14 @@
-from common.message_utils import send_telegram_message_sync  # 👈 导入同步函数
+from common.message_utils import send_telegram_message_sync, delete_telegram_message_sync
 from celery import shared_task
 from mygroups.models import MyGroup
 from collect.models import CampaignNotification
+import requests
+from django.conf import settings
 
-# 你已有的工具函数
+# 🔥 全局内存字典：key=频道ID, value=上一条消息ID
+_last_campaign_msg = {}
+
+
 def _build_telegram_post_url(channel_id: int, message_id: int, username: str | None):
     if username:
         return f"https://t.me/{username}/{message_id}"
@@ -11,13 +16,7 @@ def _build_telegram_post_url(channel_id: int, message_id: int, username: str | N
     return f"https://t.me/c/{internal_id}/{message_id}"
 
 
-# ===================== 公共函数：根据频道ID生成文案 =====================
 def generate_campaign_text_for_channel(notify_channel_id: int, username: str = None):
-    """
-    公共核心函数
-    根据 notify_channel_id 生成属于这个频道的悬赏列表文案
-    完全按 CampaignNotification 筛选
-    """
     notifications = CampaignNotification.objects.filter(
         notify_channel_id=notify_channel_id
     ).select_related("campaign")
@@ -33,12 +32,8 @@ def generate_campaign_text_for_channel(notify_channel_id: int, username: str = N
 
     lines = []
     for campaign, msg_id in valid_campaigns:
-        url = _build_telegram_post_url(
-            channel_id=notify_channel_id,
-            message_id=msg_id,
-            username=username
-        )
-        lines.append(f"💎 [{campaign.title}]({url})    💰{campaign.reward_coins}金币")
+        url = _build_telegram_post_url(notify_channel_id, msg_id, username)
+        lines.append(f"💎 [{campaign.title}](sslocal://flow/file_open?url=%7Burl%7D&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)    💰{campaign.reward_coins}金币")
 
     text = "💰💰💰 【悬赏汇总】 💰💰💰\n\n"
     text += "\n".join(lines)
@@ -46,12 +41,8 @@ def generate_campaign_text_for_channel(notify_channel_id: int, username: str = N
     return text
 
 
-# ===================== Celery 定时任务 → 改为同步发送 =====================
 @shared_task
 def broadcast_campaigns_to_all_groups():
-    """
-    每小时给所有群广播属于自己的悬赏列表
-    """
     groups = MyGroup.objects.exclude(notify_channel_id__isnull=True)
 
     for group in groups:
@@ -62,13 +53,30 @@ def broadcast_campaigns_to_all_groups():
         if not text:
             continue
 
-        # ✅ 改为 同步发送（一定能发出去）
         try:
-            send_telegram_message_sync(  # 👈 直接用同步函数
+            # ========================
+            # 1. 内存里有上一条 → 删掉
+            # ========================
+            last_msg_id = _last_campaign_msg.get(channel_id)
+            if last_msg_id:
+                delete_telegram_message_sync(channel_id, last_msg_id)
+
+            # ========================
+            # 2. 发新消息
+            # ========================
+            res = send_telegram_message_sync(
                 chat_id=channel_id,
                 text=text,
                 parse_mode="Markdown",
                 disable_web_page_preview=True,
             )
+
+            # ========================
+            # 3. 新消息ID存入内存
+            # ========================
+            if res and res.get("ok"):
+                new_msg_id = res["result"]["message_id"]
+                _last_campaign_msg[channel_id] = new_msg_id
+
         except Exception:
             continue
