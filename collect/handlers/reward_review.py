@@ -350,7 +350,6 @@ def send_submission_comment_to_channel(sub, staff, bot):
             total_submissions=1,
             user_id=None
         )
-        photos = list(sub.photos.all())
 
         for notify in notifications:
             group = MyGroup.objects.filter(notify_channel_id=notify.notify_channel_id).first()
@@ -364,23 +363,14 @@ def send_submission_comment_to_channel(sub, staff, bot):
                 logger.warning(f"无讨论组消息ID，无法评论")
                 continue
 
-            # ✅ 正确：在讨论组里回复讨论组的消息ID
-            if photos:
-                bot.send_photo(
-                    chat_id=discuss_group_id,
-                    reply_to_message_id=discuss_msg_id,  # ✅ 正确ID
-                    photo=photos[0].image,
-                    caption=text,
-                    reply_markup=keyboard
-                )
-            else:
-                bot.send_message(
-                    chat_id=discuss_group_id,
-                    reply_to_message_id=discuss_msg_id,  # ✅ 正确ID
-                    text=text,
-                    reply_markup=keyboard,
-                    parse_mode="HTML"
-                )
+
+            bot.send_message(
+                chat_id=discuss_group_id,
+                reply_to_message_id=discuss_msg_id,  # ✅ 正确ID
+                text=text,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
 
     except Exception as e:
         logger.warning(f"自动评论悬赏失败：{str(e)}")
