@@ -70,6 +70,7 @@ def admin_list_pending(update: Update, context: CallbackContext):
             f"提交ID: {sub.id}\n"
             f"活动: {sub.campaign.title}\n"
             f"提交人: {sub.reporter}\n\n"
+            f"【场所名称】{sub.place_name}\n"
             f"【技师号码】{sub.nickname}\n"
             f"【出生年份】{sub.birth_year}\n"
             f"【胸围大小】{sub.bust_size}\n"
@@ -244,6 +245,7 @@ def admin_review_info(update: Update, context: CallbackContext):
         query,
         (
             "📄 信息审核：\n\n"
+            f"【场所名称】{sub.place_name}\n"
             f"技师号码：{sub.nickname}\n"
             f"出生年份：{sub.birth_year}\n"
             f"胸围大小：{sub.bust_size}\n"
