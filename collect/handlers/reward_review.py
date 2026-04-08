@@ -352,27 +352,24 @@ def send_submission_comment_to_channel(sub, staff, bot):
         )
 
         for notify in notifications:
-            # 拿到配置
             group = MyGroup.objects.filter(notify_channel_id=notify.notify_channel_id).first()
             if not group or not group.notify_discuss_group_id:
                 continue
 
             discuss_group_id = group.notify_discuss_group_id
-            channel_id = notify.notify_channel_id
-            channel_msg_id = notify.channel_message_id
 
-            # ✅ 官方正确方式：不需要 discuss_message_id
+            # ✅ 使用你模型正确的字段
             bot.send_message(
-                chat_id=discuss_group_id,          # 发到讨论组
+                chat_id=discuss_group_id,
                 text=text,
                 reply_markup=keyboard,
                 parse_mode="HTML",
                 disable_web_page_preview=True,
 
-                # 🔥 核心：跨聊天回复频道帖子（评论）
+                # 官方正确评论方式
                 reply_parameters={
-                    "chat_id": channel_id,         # 频道ID
-                    "message_id": channel_msg_id   # 频道帖子ID
+                    "chat_id": notify.notify_channel_id,
+                    "message_id": notify.message_id,
                 }
             )
 

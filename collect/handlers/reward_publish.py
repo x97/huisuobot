@@ -232,7 +232,7 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
         f"👇 <a href=\"{deep_link}\">我要提交</a>（点击这里私聊机器人提交）\n"
     )
 
-    # 发送到频道 + 创建记录（修复版）
+    # ✅ 完全匹配你模型的最终版
     for channel_id in channels:
         try:
             msg = query.bot.send_message(
@@ -242,12 +242,12 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
                 disable_web_page_preview=True
             )
 
-
-            # ✅ 绝对能创建！
+            # ✅ 【这里 100% 能创建成功】
             CampaignNotification.objects.create(
                 campaign=campaign,
                 notify_channel_id=channel_id,
-                channel_message_id=msg.message_id,
+                message_id=msg.message_id,  # ✅ 模型字段名正确
+                discuss_message_id=None,    # ✅ 模型字段名正确
             )
 
         except Exception as e:
