@@ -1,7 +1,7 @@
+from common.message_utils import send_telegram_message_sync  # 👈 导入同步函数
 from celery import shared_task
 from mygroups.models import MyGroup
 from collect.models import CampaignNotification
-from common.message_utils.tasks import send_telegram_message
 
 # 你已有的工具函数
 def _build_telegram_post_url(channel_id: int, message_id: int, username: str | None):
@@ -46,7 +46,7 @@ def generate_campaign_text_for_channel(notify_channel_id: int, username: str = N
     return text
 
 
-# ===================== Celery 定时任务 =====================
+# ===================== Celery 定时任务 → 改为同步发送 =====================
 @shared_task
 def broadcast_campaigns_to_all_groups():
     """
@@ -58,14 +58,13 @@ def broadcast_campaigns_to_all_groups():
         channel_id = group.notify_channel_id
         username = group.notify_channel_username
 
-        # 调用公共函数生成文本
         text = generate_campaign_text_for_channel(channel_id, username)
         if not text:
             continue
 
-        # 异步发送
+        # ✅ 改为 同步发送（一定能发出去）
         try:
-            send_telegram_message.delay(
+            send_telegram_message_sync(  # 👈 直接用同步函数
                 chat_id=channel_id,
                 text=text,
                 parse_mode="Markdown",
@@ -73,5 +72,3 @@ def broadcast_campaigns_to_all_groups():
             )
         except Exception:
             continue
-
-
