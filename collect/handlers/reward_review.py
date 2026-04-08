@@ -350,27 +350,25 @@ def send_submission_comment_to_channel(sub, staff, bot):
             total_submissions=1,
             user_id=None
         )
-
         photos = list(sub.photos.all())
 
         for notify in notifications:
-            channel_id = notify.notify_channel_id
-            reply_msg_id = notify.message_id
-
-            # 🔥 找到对应配置
-            group = MyGroup.objects.filter(notify_channel_id=channel_id).first()
+            group = MyGroup.objects.filter(notify_channel_id=notify.notify_channel_id).first()
             if not group or not group.notify_discuss_group_id:
-                logger.warning(f"频道 {channel_id} 未设置讨论组，跳过评论")
                 continue
 
-            # ✅ 评论必须发这里：讨论组ID
             discuss_group_id = group.notify_discuss_group_id
+            discuss_msg_id = notify.discuss_message_id  # ✅ 用这个！
 
-            # 发评论（正确位置）
+            if not discuss_msg_id:
+                logger.warning(f"无讨论组消息ID，无法评论")
+                continue
+
+            # ✅ 正确：在讨论组里回复讨论组的消息ID
             if photos:
                 bot.send_photo(
                     chat_id=discuss_group_id,
-                    reply_to_message_id=reply_msg_id,
+                    reply_to_message_id=discuss_msg_id,  # ✅ 正确ID
                     photo=photos[0].image,
                     caption=text,
                     reply_markup=keyboard
@@ -378,11 +376,10 @@ def send_submission_comment_to_channel(sub, staff, bot):
             else:
                 bot.send_message(
                     chat_id=discuss_group_id,
-                    reply_to_message_id=reply_msg_id,
+                    reply_to_message_id=discuss_msg_id,  # ✅ 正确ID
                     text=text,
                     reply_markup=keyboard,
-                    parse_mode="HTML",
-                    disable_web_page_preview=True
+                    parse_mode="HTML"
                 )
 
     except Exception as e:

@@ -102,6 +102,7 @@ class CampaignNotification(models.Model):
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name="notifications")
     mygroup_id = models.IntegerField("MyGroup ID", null=True, blank=True)
     notify_channel_id = models.BigIntegerField("通知频道 chat_id")
+    discuss_message_id = models.BigIntegerField("讨论组对应消息ID",blank=True, null=True)
     message_id = models.BigIntegerField("通知消息 message_id")
     created_at = models.DateTimeField("记录时间", auto_now_add=True)
 
