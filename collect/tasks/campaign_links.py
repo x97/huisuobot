@@ -42,7 +42,7 @@ def generate_campaign_text_for_channel(notify_channel_id: int, username: str = N
 
     text = "💰💰💰 【悬赏汇总】 💰💰💰\n\n"
     text += "\n".join(lines)
-    text += "\n提交悬赏获取💰金币，每100金币可兑换100元出击补贴"
+    text += "\n\n\n提交悬赏获取💰金币，每100金币可兑换100元出击补贴"
     return text
 
 

@@ -101,8 +101,8 @@ def admin_end_campaign(update: Update, context: CallbackContext):
                 )
             else:
                 place_text = (
-                    f"💎 【会所名称】：全平台不限场所\n"
-                    f"📌 【所在位置】：全平台通用\n"
+                    f"💎 【会所名称】：全市不限场所\n"
+                    f"📌 【所在位置】：全市不区域\n"
                 )
 
             # ✅ 最终文本：已结束
@@ -110,7 +110,7 @@ def admin_end_campaign(update: Update, context: CallbackContext):
                 f"📢【悬赏征集-- {campaign.title}】\n\n"
                 f"{place_text}"
                 f"💰 【奖励金币】：{campaign.reward_coins}\n\n"
-                f"📄 【征集详情】: \n{campaign.description}\n\n"
+                f"📄 【征集详情】: \n{campaign.description}\n\n\n"
                 f"🔒 <b>悬赏已结束</b> | 已有 {total} 人提交\n"
             )
 

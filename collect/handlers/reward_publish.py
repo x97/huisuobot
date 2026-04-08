@@ -226,8 +226,8 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
         )
     else:
         place_text = (
-            f"💎 【会所名称】：全平台不限场所\n"
-            f"📌 【所在位置】：全平台通用\n"
+            f"💎 【会所名称】：全市不限场所\n"
+            f"📌 【所在位置】：全市不区域\n"
         )
 
     # ========================

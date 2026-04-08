@@ -366,8 +366,8 @@ def reward_submit_confirm(update: Update, context: CallbackContext):
                 )
             else:
                 place_text = (
-                    f"💎 【会所名称】：全平台不限场所\n"
-                    f"📌 【所在位置】：全平台通用\n"
+                    f"💎 【会所名称】：全市不限场所\n"
+                    f"📌 【所在位置】：全市不区域\n"
                 )
 
             new_text = (
@@ -376,7 +376,7 @@ def reward_submit_confirm(update: Update, context: CallbackContext):
                 f"💰 【奖励金币】：{campaign.reward_coins}\n\n"
                 f"📄 【征集详情】: \n{campaign.description}\n\n"
                 f"👇 <a href=\"{deep_link}\">我要提交</a>（点击这里私聊机器人提交）\n"
-                f"✅ 已有 {total} 人提交\n"  # 👈 只加这一行
+                f"\n✅ 已有 {total} 人提交\n"  # 👈 只加这一行
             )
 
             # 修改频道消息文本
