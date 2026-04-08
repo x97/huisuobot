@@ -190,13 +190,12 @@ def show_reward_summary(update: Update, context: CallbackContext):
     update.message.reply_text(summary, reply_markup=keyboard)
     return WAITING_CONFIRM
 
-
 def admin_confirm_publish(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
     # ========================
-    # ✅ 核心改动：兼容场所为空（全平台）
+    # 兼容场所为空（全平台）
     # ========================
     place_id = context.user_data.get("reward_place_id")
     place = None
@@ -208,7 +207,7 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
     # 创建悬赏（place 可以为 None）
     campaign = Campaign.objects.create(
         title=context.user_data["reward_title"],
-        place=place,  # 这里可以是 None
+        place=place,
         description=context.user_data["reward_description"],
         reward_coins=context.user_data["reward_coins"],
         is_active=True,
@@ -218,7 +217,7 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
     deep_link = f"https://t.me/{bot_username}?start=reward_{campaign.id}"
 
     # ========================
-    # ✅ 智能拼接文本：场所存在/不存在 自动显示
+    # 场所文本
     # ========================
     if place:
         place_text = (
@@ -231,26 +230,25 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
             f"📌 【所在位置】：全平台通用\n"
         )
 
+    # ========================
+    # ✅ 关键：去掉按钮，改用 HTML 富链接
+    # ========================
     text = (
         f"📢【悬赏征集-- {campaign.title}】\n\n"
-        f"{place_text}"  # 👈 自动切换
+        f"{place_text}"
         f"💰 【奖励金币】：{campaign.reward_coins}\n\n"
         f"📄 【征集详情】: \n{campaign.description}\n\n"
-
-        "👇 点击下方按钮私聊机器人提交悬赏信息\n"
+        f"👇 <a href=\"{deep_link}\">我要提交</a>（点击这里私聊机器人提交）\n"
     )
 
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📝 我要提交", url=deep_link)]
-    ])
-
-    # 发送到多个频道
+    # 发送到多个频道 → 纯文本，无按钮！
     for channel_id in channels:
         try:
             msg = query.bot.send_message(
                 chat_id=channel_id,
                 text=text,
-                reply_markup=keyboard
+                parse_mode="HTML",  # 必须加，才能识别链接
+                disable_web_page_preview=True
             )
 
             CampaignNotification.objects.create(
