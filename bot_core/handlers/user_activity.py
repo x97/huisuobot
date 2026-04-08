@@ -65,8 +65,12 @@ def discussion_forward_handler(update, context):
     if not msg:
         return
 
-    # 只处理频道自动转发到讨论组的消息
-    if not msg.is_automatic_forward:
+    # 必须是转发消息
+    if not msg.forward_from_chat:
+        return
+
+    # 必须来自频道
+    if msg.forward_from_chat.type != "channel":
         return
 
     # 原频道信息
@@ -76,8 +80,6 @@ def discussion_forward_handler(update, context):
     # 讨论组信息
     discuss_group_id = msg.chat_id
     discuss_msg_id = msg.message_id
-
-    # 更新数据库
 
     CampaignNotification.objects.filter(
         notify_channel_id=channel_id,
@@ -112,10 +114,8 @@ def register_user_activity(dp):
     )
 
     # 3. 捕获频道 → 讨论组自动转发消息（最低优先级）
-    dp.add_handler(
-        MessageHandler(
-            Filters.chat_type.groups & Filters.forwarded,
-            discussion_forward_handler
-        ),
-        group=2
+    MessageHandler(
+        Filters.chat_type.groups & Filters.forwarded,
+        discussion_forward_handler
     )
+

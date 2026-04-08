@@ -251,19 +251,12 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
                 parse_mode="HTML",  # 必须加，才能识别链接
                 disable_web_page_preview=True
             )
-            # ✅ 关键：获取讨论组里对应的消息 ID
-            # 频道开启讨论后，消息会自动转发到讨论组，ID 可以通过 get_chat_messages 获取
-            # 最简单稳定方式：直接读取 msg 的 discussion_message_id
-            try:
-                discussion_id = msg.discussion_message_id
-            except Exception as e:
-                discussion_id = None
+
 
             CampaignNotification.objects.create(
                 campaign=campaign,
                 notify_channel_id=channel_id,
-                channel_message_id=msg.message_id,  # 频道ID
-                discuss_message_id=discussion_id,
+                message_id=msg.message_id,  # 频道ID
             )
 
         except Exception as e:
