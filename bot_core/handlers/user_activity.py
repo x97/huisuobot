@@ -86,7 +86,7 @@ def discussion_forward_handler(update, context):
 
     CampaignNotification.objects.filter(
         notify_channel_id=channel_id,
-        channel_message_id=channel_msg_id,
+        message_id=channel_msg_id,
         discuss_message_id__isnull=True
     ).update(
         discuss_message_id=discuss_msg_id
