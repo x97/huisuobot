@@ -9,8 +9,7 @@ from interactions.keyboards import build_submission_keyboard
 from interactions.utils import render_submission, get_submission_page
 
 
-QUERY_PATTERN = re.compile(r"(?:#(?P<place1>\S+))?\s*(?:#?(?P<nick1>\S+))?")
-
+QUERY_PATTERN = re.compile(r"^#(?P<place1>\S+)\s*#(?P<nick1>\S+)$")
 
 # ============================================================
 # safe_edit：统一处理文本消息 / 照片消息
