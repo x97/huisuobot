@@ -20,6 +20,8 @@ class MyGroup(models.Model):
     notify_channel_id = models.BigIntegerField(null=True, blank=True, help_text="通知频道 chat_id")
     notify_channel_username = models.CharField(max_length=255, null=True, blank=True,
                                              help_text="通知频道 @username")
+    # ✅ 新增：频道绑定的讨论组（评论必须发这里）
+    notify_discuss_group_id = models.BigIntegerField(null=True, blank=True, help_text="频道的讨论组")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

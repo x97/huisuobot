@@ -3,6 +3,7 @@
 from django.conf import settings
 
 TEMPLATE_FIELDS = {
+    "🏡场所名称": "place_name",
     "🔢技师号码": "nickname",
     "🎂出生年份": "birth_year",
     "💗胸围大小": "bust_size",

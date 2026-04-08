@@ -8,6 +8,7 @@ from telegram import (
     InlineKeyboardMarkup,
     Update,
 )
+from mygroups.models import MyGroup
 from telegram.ext import (
     CallbackContext,
     CallbackQueryHandler,
@@ -342,7 +343,6 @@ def send_submission_comment_to_channel(sub, staff, bot):
         notifications = sub.campaign.notifications.all()
         text = render_submission(sub)
 
-        # ✅ 你自己的函数：自动包含 点赞/踩/离职/查看照片 按钮
         keyboard = build_staff_submission_keyboard(
             submission=sub,
             staff=staff,
@@ -351,28 +351,35 @@ def send_submission_comment_to_channel(sub, staff, bot):
             user_id=None
         )
 
-        # 获取照片（只用来判断发照片还是发文字）
         photos = list(sub.photos.all())
 
         for notify in notifications:
-            chat_id = notify.notify_channel_id
+            channel_id = notify.notify_channel_id
             reply_msg_id = notify.message_id
 
-            # 有图 → 发图（带caption+按钮）
+            # 🔥 找到对应配置
+            group = MyGroup.objects.filter(notify_channel_id=channel_id).first()
+            if not group or not group.notify_discuss_group_id:
+                logger.warning(f"频道 {channel_id} 未设置讨论组，跳过评论")
+                continue
+
+            # ✅ 评论必须发这里：讨论组ID
+            discuss_group_id = group.notify_discuss_group_id
+
+            # 发评论（正确位置）
             if photos:
                 bot.send_photo(
-                    chat_id=chat_id,
+                    chat_id=discuss_group_id,
+                    reply_to_message_id=reply_msg_id,
                     photo=photos[0].image,
                     caption=text,
-                    reply_to_message_id=reply_msg_id,
                     reply_markup=keyboard
                 )
-            # 无图 → 发文字（带按钮）
             else:
                 bot.send_message(
-                    chat_id=chat_id,
-                    text=text,
+                    chat_id=discuss_group_id,
                     reply_to_message_id=reply_msg_id,
+                    text=text,
                     reply_markup=keyboard,
                     parse_mode="HTML",
                     disable_web_page_preview=True

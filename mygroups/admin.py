@@ -11,6 +11,7 @@ class MyGroupAdmin(admin.ModelAdmin):
         'main_channel_id',
         'report_channel_id',
         'notify_channel_id',
+        'notify_discuss_group_id',
         'created_at'
     )
     # 可搜索的字段

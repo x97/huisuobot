@@ -24,7 +24,8 @@ def load_mygroups_cache():
             allowed_channels.add(g.report_channel_id)
         if g.notify_channel_id:
             allowed_channels.add(g.notify_channel_id)
-
+        if g.notify_discuss_group_id:
+            allowed_channels.add(g.notify_discuss_group_id)
     data = {
         "allowed_groups": allowed_groups,
         "allowed_channels": allowed_channels,
