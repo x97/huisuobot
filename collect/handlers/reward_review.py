@@ -352,24 +352,28 @@ def send_submission_comment_to_channel(sub, staff, bot):
         )
 
         for notify in notifications:
+            # 拿到配置
             group = MyGroup.objects.filter(notify_channel_id=notify.notify_channel_id).first()
             if not group or not group.notify_discuss_group_id:
                 continue
 
             discuss_group_id = group.notify_discuss_group_id
-            discuss_msg_id = notify.discuss_message_id  # ✅ 用这个！
+            channel_id = notify.notify_channel_id
+            channel_msg_id = notify.channel_message_id
 
-            if not discuss_msg_id:
-                logger.warning(f"无讨论组消息ID，无法评论")
-                continue
-
-
+            # ✅ 官方正确方式：不需要 discuss_message_id
             bot.send_message(
-                chat_id=discuss_group_id,
-                reply_to_message_id=discuss_msg_id,  # ✅ 正确ID
+                chat_id=discuss_group_id,          # 发到讨论组
                 text=text,
                 reply_markup=keyboard,
-                parse_mode="HTML"
+                parse_mode="HTML",
+                disable_web_page_preview=True,
+
+                # 🔥 核心：跨聊天回复频道帖子（评论）
+                reply_parameters={
+                    "chat_id": channel_id,         # 频道ID
+                    "message_id": channel_msg_id   # 频道帖子ID
+                }
             )
 
     except Exception as e:
