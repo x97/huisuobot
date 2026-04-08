@@ -234,7 +234,6 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
     text = (
         f"📢【悬赏征集】-- {campaign.title}\n\n"
         f"{place_text}"  # 👈 自动切换
-        f"👩 征集内容：{context.user_data['reward_nickname']}\n\n"
         f"📄 征集详情: {campaign.description}\n\n"
         f"💰 奖励金币：{campaign.reward_coins}\n\n"
         "👇 点击下方按钮私聊机器人提交悬赏信息\n"
