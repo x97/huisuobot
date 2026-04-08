@@ -190,10 +190,27 @@ def show_reward_summary(update: Update, context: CallbackContext):
     update.message.reply_text(summary, reply_markup=keyboard)
     return WAITING_CONFIRM
 
+import requests
+
+def get_discuss_msg_id(bot_token, channel_id, channel_msg_id):
+    url = f"https://api.telegram.org/bot{bot_token}/getDiscussionMessage"
+    payload = {
+        "chat_id": channel_id,
+        "message_id": channel_msg_id
+    }
+    r = requests.post(url, data=payload).json()
+    if r.get("ok"):
+        return r["result"]["message_id"]
+    return None
+
+
 def admin_confirm_publish(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
+    # ========================
+    # 兼容场所为空（全平台）
+    # ========================
     place_id = context.user_data.get("reward_place_id")
     place = None
     if place_id:
@@ -201,7 +218,7 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
 
     channels = context.user_data["reward_channels"]
 
-    # 创建悬赏
+    # 创建悬赏（place 可以为 None）
     campaign = Campaign.objects.create(
         title=context.user_data["reward_title"],
         place=place,
@@ -213,6 +230,9 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
     bot_username = context.bot.username
     deep_link = f"https://t.me/{bot_username}?start=reward_{campaign.id}"
 
+    # ========================
+    # 场所文本
+    # ========================
     if place:
         place_text = (
             f"💎 【会所名称】：{place.name}\n"
@@ -221,9 +241,12 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
     else:
         place_text = (
             f"💎 【会所名称】：全市不限场所\n"
-            f"📌 【所在位置】：全市区域\n"
+            f"📌 【所在位置】：全市不区域\n"
         )
 
+    # ========================
+    # ✅ 关键：去掉按钮，改用 HTML 富链接
+    # ========================
     text = (
         f"📢【悬赏征集-- {campaign.title}】\n\n"
         f"{place_text}"
@@ -232,22 +255,30 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
         f"👇 <a href=\"{deep_link}\">我要提交</a>（点击这里私聊机器人提交）\n"
     )
 
-    # ✅ 完全匹配你模型的最终版
+    # 发送到多个频道 → 纯文本，无按钮！
     for channel_id in channels:
         try:
             msg = query.bot.send_message(
                 chat_id=channel_id,
                 text=text,
-                parse_mode="HTML",
+                parse_mode="HTML",  # 必须加，才能识别链接
                 disable_web_page_preview=True
             )
+            # ✅ 关键：获取讨论组里对应的消息 ID
+            # 频道开启讨论后，消息会自动转发到讨论组，ID 可以通过 get_chat_messages 获取
+            # 最简单稳定方式：直接读取 msg 的 discussion_message_id
 
-            # ✅ 【这里 100% 能创建成功】
+            discuss_msg_id = get_discuss_msg_id(
+                bot_token=context.bot.token,
+                channel_id=channel_id,
+                channel_msg_id=msg.message_id
+            )
+
             CampaignNotification.objects.create(
                 campaign=campaign,
                 notify_channel_id=channel_id,
-                message_id=msg.message_id,  # ✅ 模型字段名正确
-                discuss_message_id=None,    # ✅ 模型字段名正确
+                channel_message_id=msg.message_id,  # 频道ID
+                discuss_message_id=discuss_msg_id,  # 讨论组ID ✅ 必须存
             )
 
         except Exception as e:
