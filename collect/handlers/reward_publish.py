@@ -59,7 +59,7 @@ def admin_input_place(update: Update, context: CallbackContext):
         # 不设置场所 = 全平台
         context.user_data["reward_place_id"] = None  # 👈 核心
         update.message.reply_text("已选择：全平台悬赏\n请输入悬赏标题：\n输入 /cancel 取消当前操作")
-        return WAITING_PLACE
+        return WAITING_TITLE
 
     # 原来逻辑：查找场所
     place = find_place_by_name(name)
