@@ -73,7 +73,7 @@ def admin_list_campaigns(update: Update, context: CallbackContext):
         update.message.reply_text("\n".join(lines), reply_markup=markup)
 
 def admin_end_campaign(update: Update, context: CallbackContext):
-    """结束悬赏活动并更新频道消息按钮"""
+    """结束悬赏活动并更新频道消息（改为已结束文本）"""
     query = update.callback_query
     query.answer()
 
@@ -84,37 +84,51 @@ def admin_end_campaign(update: Update, context: CallbackContext):
     campaign.is_active = False
     campaign.save(update_fields=["is_active"])
 
-    # 更新频道消息按钮
+    total = Submission.objects.filter(campaign=campaign).count()
+
+    # 更新频道消息文本（只改最后一行）
     for n in campaign.notifications.all():
         try:
-            # 构造“已结束”按钮
-            total = Submission.objects.filter(campaign=campaign).count()
+            bot_username = context.bot.username
+            deep_link = f"https://t.me/{bot_username}?start=reward_{campaign.id}"
 
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton(
-                        f"❌ 已结束 ({total}人已提交)",
-                        callback_data="noop"
-                    )
-                ]
-            ])
+            # 直接拼接最终文本（已结束状态）
+            place = campaign.place
+            if place:
+                place_text = (
+                    f"💎 【会所名称】：{place.name}\n"
+                    f"📌 【所在位置】：{place.district}\n"
+                )
+            else:
+                place_text = (
+                    f"💎 【会所名称】：全平台不限场所\n"
+                    f"📌 【所在位置】：全平台通用\n"
+                )
 
-            # 更新频道消息（不删除）
-            query.bot.edit_message_reply_markup(
+            # ✅ 最终文本：已结束
+            new_text = (
+                f"📢【悬赏征集-- {campaign.title}】\n\n"
+                f"{place_text}"
+                f"💰 【奖励金币】：{campaign.reward_coins}\n\n"
+                f"📄 【征集详情】: \n{campaign.description}\n\n"
+                f"🔒 <b>悬赏已结束</b> | 已有 {total} 人提交\n"
+            )
+
+            # 替换频道消息
+            query.bot.edit_message_text(
                 chat_id=n.notify_channel_id,
                 message_id=n.message_id,
-                reply_markup=keyboard
+                text=new_text,
+                parse_mode="HTML",
+                disable_web_page_preview=True
             )
         except Exception as e:
             logger.error(f"更新频道消息失败: {e}")
 
-    # 管理员反馈界面
-
-    reply_markup = append_back_button(None)
-
+    # 管理员提示
     query.edit_message_text(
-        "悬赏活动已结束，频道消息已更新为【已结束】。",
-        reply_markup=reply_markup
+        "✅ 悬赏活动已结束，频道帖子已更新为【已结束】。",
+        reply_markup=append_back_button(None)
     )
 
 

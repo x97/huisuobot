@@ -346,29 +346,49 @@ def reward_submit_confirm(update: Update, context: CallbackContext):
     context.user_data.pop("reward_draft", None)
     context.user_data.pop("reward_submit_campaign_id", None)
 
+    # ========================
+    # ✅ 新版：更新文本里的提交人数（不再改按钮）
+    # ========================
     try:
         notify = campaign.notifications.first()
         if notify:
+            # 统计提交人数
             total = Submission.objects.filter(campaign=campaign).count()
             bot_username = context.bot.username
             deep_link = f"https://t.me/{bot_username}?start=reward_{campaign.id}"
 
-            new_keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton(
-                        f"📝 我要提交 ({total}人已提交)",
-                        url=deep_link
-                    )
-                ]
-            ])
+            # 拼接新文本（只改最后一行）
+            place = campaign.place
+            if place:
+                place_text = (
+                    f"💎 【会所名称】：{place.name}\n"
+                    f"📌 【所在位置】：{place.district}\n"
+                )
+            else:
+                place_text = (
+                    f"💎 【会所名称】：全平台不限场所\n"
+                    f"📌 【所在位置】：全平台通用\n"
+                )
 
-            context.bot.edit_message_reply_markup(
+            new_text = (
+                f"📢【悬赏征集-- {campaign.title}】\n\n"
+                f"{place_text}"
+                f"💰 【奖励金币】：{campaign.reward_coins}\n\n"
+                f"📄 【征集详情】: \n{campaign.description}\n\n"
+                f"👇 <a href=\"{deep_link}\">我要提交</a>（点击这里私聊机器人提交）\n"
+                f"✅ 已有 {total} 人提交\n"  # 👈 只加这一行
+            )
+
+            # 修改频道消息文本
+            context.bot.edit_message_text(
                 chat_id=notify.notify_channel_id,
                 message_id=notify.message_id,
-                reply_markup=new_keyboard
+                text=new_text,
+                parse_mode="HTML",
+                disable_web_page_preview=True
             )
     except Exception as e:
-        logger.error(f"更新频道按钮失败: {e}")
+        logger.error(f"更新频道提交人数失败: {e}")
 
     query.edit_message_text(
         "✅ 已收到你的提交，等待管理员审核。",
