@@ -338,36 +338,77 @@ def admin_approve(update: Update, context: CallbackContext):
 from interactions.utils import render_submission
 from .query_staff import build_staff_submission_keyboard
 
+import requests
+from django.conf import settings
+
+
+def send_telegram_message_with_reply(
+        chat_id: int | str,
+        text: str,
+        reply_to_message_id: int,  # 频道帖子的 message_id
+        reply_to_chat_id: int | str,  # 频道的 chat_id
+        parse_mode: str = "HTML",
+        **kwargs
+):
+    """
+    使用原生 reply_parameters 发送消息（跨聊天回复）
+    适用于任何版本的 python-telegram-bot，因为直接调用 API
+    """
+    token = settings.TELEGRAM_BOT_TOKEN
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+
+    payload = {
+        "chat_id": chat_id,  # 消息实际发送到讨论组
+        "text": text,
+        "parse_mode": parse_mode,
+        "reply_parameters": {
+            "message_id": reply_to_message_id,  # 频道帖子的 ID
+            "chat_id": reply_to_chat_id,  # 频道的 ID（跨聊天必需）
+        }
+    }
+
+    # 可选：允许找不到原消息时仍然发送
+    if kwargs.get("allow_sending_without_reply"):
+        payload["reply_parameters"]["allow_sending_without_reply"] = True
+
+    # 可选：引用特定文本片段
+    if kwargs.get("quote"):
+        payload["reply_parameters"]["quote"] = kwargs["quote"]
+
+    response = requests.post(url, json=payload, timeout=15)
+    return response.json()
+
 
 def send_submission_comment_to_channel(sub, staff, bot):
     try:
         notifications = sub.campaign.notifications.all()
         text = render_submission(sub)
 
-        # ✅ 修复参数名：user_id=None
+        # 你的按钮正常生成
         keyboard = build_staff_submission_keyboard(
             submission=sub,
             staff=staff,
             page=1,
             total_submissions=1,
-            user_id=None  # 这里改对！
+            user_id=None
         )
 
         for notify in notifications:
+            # 获取讨论组
             group = MyGroup.objects.filter(notify_channel_id=notify.notify_channel_id).first()
             if not group or not group.notify_discuss_group_id:
                 continue
 
             discuss_group_id = group.notify_discuss_group_id
 
-            # ✅ 旧版兼容，无错误
-            bot.send_message(
-                chat_id=discuss_group_id,
-                text=text,
-                reply_markup=keyboard,
-                parse_mode="HTML",
-                disable_web_page_preview=True,
-                reply_to_message_id=notify.message_id
+            # =========================
+            # ✅ 直接调用原生 API 评论！
+            # =========================
+            send_telegram_message_with_reply(
+                chat_id=discuss_group_id,                # 发到讨论组
+                text=text,                                # 评论内容
+                reply_to_message_id=notify.message_id,    # 频道帖子ID
+                reply_to_chat_id=notify.notify_channel_id # 频道ID
             )
 
     except Exception as e:
