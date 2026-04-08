@@ -1,6 +1,7 @@
 from telegram.ext import MessageHandler, Filters
 from tgusers.services import update_or_create_user, process_sign_in, process_message_points
 from botconfig.services import get_bot_config
+from collect.models import CampaignNotification
 
 
 def sign_in_handler(update, context):
@@ -59,14 +60,46 @@ def user_message_handler(update, context):
         message.reply_text(f"✨ 获得 {points} 积分 ✨")
 
 
+def discussion_forward_handler(update, context):
+    msg = update.message
+    if not msg:
+        return
+
+    # 只处理频道自动转发到讨论组的消息
+    if not msg.is_automatic_forward:
+        return
+
+    # 原频道信息
+    channel_id = msg.forward_from_chat.id
+    channel_msg_id = msg.forward_from_message_id
+
+    # 讨论组信息
+    discuss_group_id = msg.chat_id
+    discuss_msg_id = msg.message_id
+
+    # 更新数据库
+
+    CampaignNotification.objects.filter(
+        notify_channel_id=channel_id,
+        channel_message_id=channel_msg_id,
+        discuss_message_id__isnull=True
+    ).update(
+        discuss_message_id=discuss_msg_id
+    )
+
+    print(f"[DISCUSS] 已更新 discuss_message_id={discuss_msg_id}")
+
+
 def register_user_activity(dp):
-    """注册签到 + 积分"""
+    """注册签到 + 积分 + 讨论组同步"""
+
     # 1. 签到（优先级高）
     dp.add_handler(
         MessageHandler(
             Filters.text & (~Filters.command) & Filters.chat_type.groups,
             sign_in_handler
         ),
+        group=0
     )
 
     # 2. 积分（优先级低）
@@ -75,4 +108,14 @@ def register_user_activity(dp):
             Filters.text & (~Filters.command) & Filters.chat_type.groups,
             user_message_handler
         ),
+        group=1
+    )
+
+    # 3. 捕获频道 → 讨论组自动转发消息（最低优先级）
+    dp.add_handler(
+        MessageHandler(
+            Filters.chat_type.groups & Filters.forwarded,
+            discussion_forward_handler
+        ),
+        group=2
     )

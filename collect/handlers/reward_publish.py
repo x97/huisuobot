@@ -190,19 +190,6 @@ def show_reward_summary(update: Update, context: CallbackContext):
     update.message.reply_text(summary, reply_markup=keyboard)
     return WAITING_CONFIRM
 
-import requests
-
-def get_discuss_msg_id(bot_token, channel_id, channel_msg_id):
-    url = f"https://api.telegram.org/bot{bot_token}/getDiscussionMessage"
-    payload = {
-        "chat_id": channel_id,
-        "message_id": channel_msg_id
-    }
-    r = requests.post(url, data=payload).json()
-    if r.get("ok"):
-        return r["result"]["message_id"]
-    return None
-
 
 def admin_confirm_publish(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -267,18 +254,16 @@ def admin_confirm_publish(update: Update, context: CallbackContext):
             # ✅ 关键：获取讨论组里对应的消息 ID
             # 频道开启讨论后，消息会自动转发到讨论组，ID 可以通过 get_chat_messages 获取
             # 最简单稳定方式：直接读取 msg 的 discussion_message_id
-
-            discuss_msg_id = get_discuss_msg_id(
-                bot_token=context.bot.token,
-                channel_id=channel_id,
-                channel_msg_id=msg.message_id
-            )
+            try:
+                discussion_id = msg.discussion_message_id
+            except Exception as e:
+                discussion_id = None
 
             CampaignNotification.objects.create(
                 campaign=campaign,
                 notify_channel_id=channel_id,
                 channel_message_id=msg.message_id,  # 频道ID
-                discuss_message_id=discuss_msg_id,  # 讨论组ID ✅ 必须存
+                discuss_message_id=discussion_id,
             )
 
         except Exception as e:
