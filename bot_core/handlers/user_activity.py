@@ -32,6 +32,13 @@ def user_message_handler(update, context):
     chat = update.effective_chat
     user = update.effective_user
 
+    if not message:
+        return
+
+    # 自动同步的频道帖子一定有 forward_from_chat
+    if hasattr(message, "forward_from_chat"):
+        return
+
     if chat.type not in ("group", "supergroup"):
         return
 
@@ -65,20 +72,16 @@ def discussion_forward_handler(update, context):
     if not msg:
         return
 
-    # 必须是转发消息
+    # 自动同步的频道帖子一定有 forward_from_chat
     if not msg.forward_from_chat:
         return
 
-    # 必须来自频道
     if msg.forward_from_chat.type != "channel":
         return
 
-    # 原频道信息
     channel_id = msg.forward_from_chat.id
     channel_msg_id = msg.forward_from_message_id
 
-    # 讨论组信息
-    discuss_group_id = msg.chat_id
     discuss_msg_id = msg.message_id
 
     CampaignNotification.objects.filter(
@@ -113,9 +116,11 @@ def register_user_activity(dp):
         group=1
     )
 
-    # 3. 捕获频道 → 讨论组自动转发消息（最低优先级）
-    MessageHandler(
-        Filters.chat_type.groups & Filters.forwarded,
-        discussion_forward_handler
+    dp.add_handler(
+        MessageHandler(
+            Filters.chat_type.groups,
+            discussion_forward_handler
+        ),
+        group=2
     )
 
