@@ -308,9 +308,12 @@ def get_admin_publish_handler():
                 MessageHandler(only_text, admin_input_reward),
             ],
             WAITING_CHANNEL: [
-                MessageHandler(only_text, admin_input_channel),
+                # 只接受【非命令】的文本
+                MessageHandler(Filters.text & ~Filters.command, admin_input_channel),
+                # /done 命令独立处理
                 CommandHandler("done", admin_finish_channels),
             ],
+
             WAITING_CONFIRM: [
                 CallbackQueryHandler(admin_confirm_publish, pattern=rf"^{PREFIX}:confirm$"),
                 CallbackQueryHandler(admin_cancel, pattern=rf"^{PREFIX}:cancel$"),
