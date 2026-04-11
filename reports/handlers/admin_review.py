@@ -84,6 +84,9 @@ def _reply_with_admin_back(context: CallbackContext, chat_id: int, text: str, ba
     context.bot.send_message(chat_id=chat_id, text=text, reply_markup=markup)
 
 
+MAX_TEXT_LEN = 3500   # 留出空间给 inline keyboard，避免按钮消失
+
+
 def send_paginated_reports(update: Update, context: CallbackContext, page_number: int = 1):
     """
     发送指定页的待审核报告（管理员入口）
@@ -101,7 +104,6 @@ def send_paginated_reports(update: Update, context: CallbackContext, page_number
 
     reports_qs = Report.objects.filter(status='pending').order_by('-created_at')
     if not reports_qs.exists():
-        # 使用 append_back_button 返回带返回管理员菜单的键盘
         empty_markup = append_back_button(None)
         if query:
             query.answer()
@@ -123,38 +125,67 @@ def send_paginated_reports(update: Update, context: CallbackContext, page_number
         page = paginator.page(1)
 
     report = page.object_list.first()
-    caption = _report_caption(report)
 
-    # 获取图片文件（由 services 封装）
-    photo_file = services.get_report_photo(report)
+    # ============================
+    # 1. 获取完整文本（可能很长）
+    # ============================
+    full_text = _report_caption(report)
+
+    # ⭐ 强制截断，避免按钮不显示
+    if len(full_text) > MAX_TEXT_LEN:
+        full_text = full_text[:MAX_TEXT_LEN] + "\n\n…（内容过长已截断）"
+
+    keyboard = _report_page_keyboard(report.id, page.number, paginator.num_pages)
+
+    # ============================
+    # 2. 获取图片（如果有）
+    # ============================
+    photo_file = services.get_report_photo(report)  # 有可能为 None
+
+    # ============================
+    # 3. 发送消息（兼容 query / 普通消息）
+    # ============================
+    chat_id = query.message.chat_id if query else update.message.chat_id
 
     if query:
         query.answer()
         try:
-            # 删除触发回调的消息（如果需要）
-            try:
-                query.delete_message()
-            except Exception:
-                pass
+            query.delete_message()
+        except Exception:
+            pass
 
-            context.bot.send_photo(
-                chat_id=query.message.chat_id,
-                photo=photo_file,
-                caption=caption,
-                reply_markup=_report_page_keyboard(report.id, page.number, paginator.num_pages)
-            )
-        except Exception:
-            # 回退为发送文本（避免抛错）
-            _reply_with_admin_back(context, query.message.chat_id, caption)
-    else:
+    # ============================
+    # ⭐ 情况 A：有图片 → 发图片 + 发文本
+    # ============================
+    if photo_file:
+        # 先发图片（短 caption）
+        short_caption = f"📋 报告ID: {report.id}\n提交者: @{report.reporter.username or report.reporter.user_id}"
+
         try:
-            update.message.reply_photo(
+            context.bot.send_photo(
+                chat_id=chat_id,
                 photo=photo_file,
-                caption=caption,
-                reply_markup=_report_page_keyboard(report.id, page.number, paginator.num_pages)
+                caption=short_caption
             )
         except Exception:
-            update.message.reply_text(caption, reply_markup=_report_page_keyboard(report.id, page.number, paginator.num_pages))
+            context.bot.send_message(chat_id, "（图片加载失败）")
+
+        # 再发正文（长文本 + 按钮）
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=full_text,
+            reply_markup=keyboard
+        )
+
+    # ============================
+    # ⭐ 情况 B：无图片 → 直接发文本（已截断）
+    # ============================
+    else:
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=full_text,
+            reply_markup=keyboard
+        )
 
     context.user_data['current_report_page'] = page.number
     return REVIEWING_REPORT
